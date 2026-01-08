@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,28 +60,45 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        green: {
+          50: "hsl(var(--green-50))",
+          100: "hsl(var(--green-100))",
+          200: "hsl(var(--green-200))",
+          300: "hsl(var(--green-300))",
+          400: "hsl(var(--green-400))",
+          500: "hsl(var(--green-500))",
+          600: "hsl(var(--green-600))",
+          700: "hsl(var(--green-700))",
+          800: "hsl(var(--green-800))",
+          900: "hsl(var(--green-900))",
+        },
+        chart: {
+          1: "hsl(var(--chart-1))",
+          2: "hsl(var(--chart-2))",
+          3: "hsl(var(--chart-3))",
+          4: "hsl(var(--chart-4))",
+          5: "hsl(var(--chart-5))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      boxShadow: {
+        'card': 'var(--shadow-card)',
+        'soft': 'var(--shadow-sm)',
+        'medium': 'var(--shadow-md)',
+        'large': 'var(--shadow-lg)',
+      },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
