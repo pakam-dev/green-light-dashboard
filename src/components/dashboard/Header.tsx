@@ -1,6 +1,5 @@
-import { Search, Bell, Menu } from "lucide-react";
+import { Bell, Menu, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -9,7 +8,7 @@ interface HeaderProps {
 
 export const Header = ({ onMenuClick, onNotificationClick }: HeaderProps) => {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background px-6">
       <div className="flex items-center gap-4">
         <button
           onClick={onMenuClick}
@@ -17,20 +16,18 @@ export const Header = ({ onMenuClick, onNotificationClick }: HeaderProps) => {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="hidden md:block">
-          <h1 className="text-xl font-semibold text-foreground">Welcome back, John 👋</h1>
-          <p className="text-sm text-muted-foreground">Here's what's happening today</p>
-        </div>
+        <h1 className="text-2xl font-semibold text-primary">Dashboard</h1>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative hidden sm:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search..."
-            className="w-64 pl-9 bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary"
-          />
-        </div>
+      <div className="flex items-center gap-4">
+        <Button variant="outline" className="gap-2">
+          <SlidersHorizontal className="h-4 w-4" />
+          Filter
+        </Button>
+        <Button variant="outline" className="gap-2">
+          Available Location
+          <ChevronDown className="h-4 w-4" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -38,10 +35,13 @@ export const Header = ({ onMenuClick, onNotificationClick }: HeaderProps) => {
           onClick={onNotificationClick}
         >
           <Bell className="h-5 w-5" />
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-            3
-          </span>
         </Button>
+        <div className="flex items-center gap-3 border-l border-border pl-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500 text-white font-semibold text-sm">
+            FL
+          </div>
+          <span className="text-sm font-medium text-primary">Pakam admin</span>
+        </div>
       </div>
     </header>
   );

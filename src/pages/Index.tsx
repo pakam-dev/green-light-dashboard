@@ -1,39 +1,65 @@
 import { useState, useEffect } from "react";
-import { Users, DollarSign, TrendingUp, ShoppingCart } from "lucide-react";
+import { Truck, Globe, Building2, Users, Package, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Header } from "@/components/dashboard/Header";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { RevenueChart } from "@/components/dashboard/RevenueChart";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import { QuickActions } from "@/components/dashboard/QuickActions";
+import { MapSection } from "@/components/dashboard/MapSection";
+import { DataTable } from "@/components/dashboard/DataTable";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { NotificationPanel } from "@/components/dashboard/NotificationPanel";
 import { initializeOneSignal } from "@/lib/onesignal";
 
-const stats = [
+const statsRow1 = [
   {
-    title: "Total Revenue",
-    value: "$54,230",
-    change: 12.5,
-    icon: DollarSign,
+    title: "Total Pending Dropoff",
+    value: "345",
+    icon: Truck,
+    valueColor: "gray" as const,
   },
   {
-    title: "Active Users",
-    value: "2,340",
-    change: 8.2,
+    title: "Total Waste (KG)",
+    value: "773,981.504 Kg",
+    icon: Globe,
+    valueColor: "green" as const,
+  },
+  {
+    title: "Total Organisations",
+    value: "340",
+    icon: Building2,
+    valueColor: "gray" as const,
+  },
+  {
+    title: "Total Users",
+    value: "24,428",
     icon: Users,
+    valueColor: "green" as const,
+  },
+];
+
+const statsRow2 = [
+  {
+    title: "Total Completed Dropoff",
+    value: "788",
+    icon: Package,
+    valueColor: "gray" as const,
   },
   {
-    title: "Conversion Rate",
-    value: "3.24%",
-    change: -2.1,
-    icon: TrendingUp,
+    title: "Pending Pickup",
+    value: "995",
+    icon: Clock,
+    valueColor: "red" as const,
   },
   {
-    title: "Total Orders",
-    value: "1,240",
-    change: 15.3,
-    icon: ShoppingCart,
+    title: "Completed Pickup",
+    value: "14,405",
+    icon: CheckCircle,
+    valueColor: "green" as const,
+  },
+  {
+    title: "Missed Pickup",
+    value: "11,455",
+    icon: XCircle,
+    valueColor: "red" as const,
   },
 ];
 
@@ -42,7 +68,6 @@ const Index = () => {
   const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
 
   useEffect(() => {
-    // Initialize OneSignal on app load
     initializeOneSignal();
   }, []);
 
@@ -60,33 +85,42 @@ const Index = () => {
         />
 
         <main className="p-6">
-          {/* Stats Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat, index) => (
+          {/* Stats Row 1 */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {statsRow1.map((stat, index) => (
               <StatCard
                 key={stat.title}
                 title={stat.title}
                 value={stat.value}
-                change={stat.change}
                 icon={stat.icon}
+                valueColor={stat.valueColor}
                 delay={index * 50}
               />
             ))}
           </div>
 
-          {/* Charts and Activity */}
-          <div className="mt-6 grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <RevenueChart />
-            </div>
-            <div>
-              <QuickActions />
-            </div>
+          {/* Stats Row 2 */}
+          <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {statsRow2.map((stat, index) => (
+              <StatCard
+                key={stat.title}
+                title={stat.title}
+                value={stat.value}
+                icon={stat.icon}
+                valueColor={stat.valueColor}
+                delay={(index + 4) * 50}
+              />
+            ))}
           </div>
 
-          {/* Activity Feed */}
+          {/* Map Section */}
           <div className="mt-6">
-            <ActivityFeed />
+            <MapSection />
+          </div>
+
+          {/* Data Table */}
+          <div className="mt-6">
+            <DataTable />
           </div>
         </main>
       </div>
