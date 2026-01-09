@@ -15,6 +15,8 @@ import {
 interface SidebarProps {
   activeItem: string;
   onItemClick: (item: string) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 const menuItems = [
@@ -37,7 +39,7 @@ const menuItems = [
   { id: "total-users", label: "Total Users", icon: Users },
 ];
 
-export const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
+export const Sidebar = ({ activeItem, onItemClick, isOpen = false, onClose }: SidebarProps) => {
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
 
   const toggleSubmenu = (id: string) => {
@@ -45,7 +47,11 @@ export const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-primary">
+    <aside className={cn(
+      "fixed left-0 top-0 z-50 h-screen w-64 bg-primary transition-transform duration-300",
+      "lg:translate-x-0",
+      isOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-20 items-center gap-3 px-6">
