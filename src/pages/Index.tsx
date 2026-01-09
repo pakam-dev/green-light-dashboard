@@ -66,6 +66,7 @@ const statsRow2 = [
 const Index = () => {
   const [activeItem, setActiveItem] = useState("dashboard");
   const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     initializeOneSignal();
@@ -73,14 +74,29 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="hidden lg:block">
-        <Sidebar activeItem={activeItem} onItemClick={setActiveItem} />
-      </div>
+      <Sidebar 
+        activeItem={activeItem} 
+        onItemClick={(item) => {
+          setActiveItem(item);
+          setSidebarOpen(false);
+        }}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       {/* Main Content */}
       <div className="lg:pl-64">
         <Header
+          onMenuClick={() => setSidebarOpen(true)}
           onNotificationClick={() => setNotificationPanelOpen(!notificationPanelOpen)}
         />
 
