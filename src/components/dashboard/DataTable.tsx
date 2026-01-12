@@ -1,19 +1,20 @@
 import { useState } from "react";
-import { Search, SlidersHorizontal, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useDataTable } from "@/hooks/use-data-table";
+import { ReusableDataTable, TableColumn, TableTab } from "./ReusableDataTable";
+import { toast } from "sonner";
 
-const tabs = ["Recent Pickups", "New Users", "New Aggregators"];
+// Types
+interface PickupData {
+  id: number;
+  location: string;
+  phone: string;
+  createdDate: string;
+  pickupDate: string;
+}
 
-const mockData = [
+// Mock data
+const mockPickupData: PickupData[] = [
   {
     id: 1,
     location: "cherubmall, Chevron Drive, Oj...",
@@ -42,95 +43,100 @@ const mockData = [
     createdDate: "2026-01-08",
     pickupDate: "Invalid date",
   },
+  {
+    id: 5,
+    location: "Lekki Phase 1, Lagos...",
+    phone: "08023456789",
+    createdDate: "2026-01-07",
+    pickupDate: "2026-01-10",
+  },
+  {
+    id: 6,
+    location: "Victoria Island, Lagos...",
+    phone: "08034567890",
+    createdDate: "2026-01-07",
+    pickupDate: "2026-01-09",
+  },
+];
+
+const tabs: TableTab[] = [
+  { id: "recent-pickups", label: "Recent Pickups" },
+  { id: "new-users", label: "New Users" },
+  { id: "new-aggregators", label: "New Aggregators" },
+];
+
+const columns: TableColumn<PickupData>[] = [
+  { key: "location", header: "Pickup Location", className: "font-medium" },
+  { key: "phone", header: "Phone" },
+  { key: "createdDate", header: "Created Date" },
+  { key: "pickupDate", header: "PickUp Date" },
 ];
 
 export const DataTable = () => {
-  const [activeTab, setActiveTab] = useState("Recent Pickups");
+  const [activeTab, setActiveTab] = useState("recent-pickups");
+
+  // Use the reusable hook
+  const tableState = useDataTable({
+    data: mockPickupData,
+    initialPageSize: 10,
+    searchableFields: ["location", "phone"],
+  });
+
+  // Export handler
+  const handleExport = () => {
+    const csvContent = [
+      columns.map(col => col.header).join(","),
+      ...tableState.filteredData.map(row => 
+        columns.map(col => row[col.key as keyof PickupData]).join(",")
+      )
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${activeTab}-export.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    toast.success("Data exported successfully!");
+  };
+
+  // Filter handler
+  const handleFilter = () => {
+    toast.info("Filter dialog would open here");
+  };
+
+  // Refresh handler
+  const handleRefresh = async () => {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    toast.success("Data refreshed!");
+  };
+
+  // Row action renderer
+  const renderRowActions = (item: PickupData) => (
+    <Button 
+      variant="outline" 
+      size="sm"
+      onClick={() => toast.info(`Viewing details for pickup #${item.id}`)}
+    >
+      See More
+    </Button>
+  );
 
   return (
-    <div className="bg-card rounded-xl border border-border">
-      {/* Tabs */}
-      <div className="flex items-center gap-6 px-6 pt-4 border-b border-border">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`pb-4 text-sm font-medium transition-colors relative ${
-              activeTab === tab
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab}
-            {activeTab === tab && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Search and Actions */}
-      <div className="flex items-center justify-between p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search data table"
-            className="w-64 pl-9 bg-muted/30 border-border"
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2">
-            <SlidersHorizontal className="h-4 w-4" />
-            Filter
-          </Button>
-          <Button variant="outline">Export as CSV</Button>
-        </div>
-      </div>
-
-      {/* Refresh and Pagination Info */}
-      <div className="flex items-center justify-between px-6 py-2">
-        <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">1 - 100 of 29476</span>
-          <Button variant="outline" size="icon" className="h-8 w-8">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="text-primary font-medium">Pickup Location</TableHead>
-            <TableHead className="text-primary font-medium">Phone</TableHead>
-            <TableHead className="text-primary font-medium">Created Date</TableHead>
-            <TableHead className="text-primary font-medium">PickUp Date</TableHead>
-            <TableHead className="text-primary font-medium">Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {mockData.map((row) => (
-            <TableRow key={row.id}>
-              <TableCell className="font-medium">{row.location}</TableCell>
-              <TableCell>{row.phone}</TableCell>
-              <TableCell>{row.createdDate}</TableCell>
-              <TableCell>{row.pickupDate}</TableCell>
-              <TableCell>
-                <Button variant="outline" size="sm">
-                  See More
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <ReusableDataTable
+      tableState={tableState}
+      columns={columns}
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      searchPlaceholder="Search pickups..."
+      onExport={handleExport}
+      onFilter={handleFilter}
+      onRefresh={handleRefresh}
+      renderRowActions={renderRowActions}
+      emptyMessage="No pickups found"
+    />
   );
 };
