@@ -102,12 +102,12 @@ export function ReusableDataTable<T>({
     <div className="bg-card rounded-xl border border-border">
       {/* Tabs */}
       {tabs && tabs.length > 0 && (
-        <div className="flex items-center gap-6 px-6 pt-4 border-b border-border">
+        <div className="flex items-center gap-4 md:gap-6 px-4 md:px-6 pt-4 border-b border-border overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => onTabChange?.(tab.id)}
-              className={`pb-4 text-sm font-medium transition-colors relative ${
+              className={`pb-4 text-sm font-medium transition-colors relative whitespace-nowrap ${
                 activeTab === tab.id
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -123,7 +123,7 @@ export function ReusableDataTable<T>({
       )}
 
       {/* Search and Actions */}
-      <div className="flex items-center justify-between p-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4">
         {showSearch && (
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -131,20 +131,21 @@ export function ReusableDataTable<T>({
               placeholder={searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64 pl-9 bg-muted/30 border-border"
+              className="w-full sm:w-64 pl-9 bg-muted/30 border-border"
             />
           </div>
         )}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {showFilter && (
-            <Button variant="outline" className="gap-2" onClick={onFilter}>
+            <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none" onClick={onFilter}>
               <SlidersHorizontal className="h-4 w-4" />
-              Filter
+              <span className="hidden sm:inline">Filter</span>
             </Button>
           )}
           {showExport && (
-            <Button variant="outline" onClick={onExport}>
-              Export as CSV
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={onExport}>
+              <span className="sm:hidden">Export</span>
+              <span className="hidden sm:inline">Export as CSV</span>
             </Button>
           )}
         </div>
@@ -152,7 +153,7 @@ export function ReusableDataTable<T>({
 
       {/* Refresh and Pagination Info */}
       {(showRefresh || showPagination) && (
-        <div className="flex items-center justify-between px-6 py-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 md:px-6 py-2">
           {showRefresh && (
             <Button 
               variant="ghost" 
@@ -170,8 +171,8 @@ export function ReusableDataTable<T>({
             </Button>
           )}
           {showPagination && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{paginationInfo}</span>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <span className="text-xs sm:text-sm text-muted-foreground">{paginationInfo}</span>
               <Button 
                 variant="outline" 
                 size="icon" 
@@ -195,52 +196,83 @@ export function ReusableDataTable<T>({
         </div>
       )}
 
-      {/* Table */}
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            {columns.map((column) => (
-              <TableHead 
-                key={String(column.key)} 
-                className={`text-primary font-medium ${column.className || ""}`}
-              >
-                {column.header}
-              </TableHead>
-            ))}
-            {renderRowActions && (
-              <TableHead className="text-primary font-medium">Action</TableHead>
-            )}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {paginatedData.length === 0 ? (
-            <TableRow>
-              <TableCell 
-                colSpan={columns.length + (renderRowActions ? 1 : 0)} 
-                className="h-24 text-center text-muted-foreground"
-              >
-                {emptyMessage}
-              </TableCell>
-            </TableRow>
-          ) : (
-            paginatedData.map((row, index) => (
-              <TableRow key={index}>
+      {/* Mobile Card View */}
+      <div className="block md:hidden">
+        {paginatedData.length === 0 ? (
+          <div className="p-6 text-center text-muted-foreground">
+            {emptyMessage}
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {paginatedData.map((row, index) => (
+              <div key={index} className="p-4 space-y-2">
                 {columns.map((column) => (
-                  <TableCell 
-                    key={String(column.key)} 
-                    className={column.className}
-                  >
-                    {getCellValue(row, column)}
-                  </TableCell>
+                  <div key={String(column.key)} className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-medium text-muted-foreground">{column.header}</span>
+                    <span className={`text-sm text-right ${column.className || ""}`}>
+                      {getCellValue(row, column)}
+                    </span>
+                  </div>
                 ))}
                 {renderRowActions && (
-                  <TableCell>{renderRowActions(row)}</TableCell>
+                  <div className="pt-2 mt-2 border-t border-border">
+                    {renderRowActions(row)}
+                  </div>
                 )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              {columns.map((column) => (
+                <TableHead 
+                  key={String(column.key)} 
+                  className={`text-primary font-medium whitespace-nowrap ${column.className || ""}`}
+                >
+                  {column.header}
+                </TableHead>
+              ))}
+              {renderRowActions && (
+                <TableHead className="text-primary font-medium">Action</TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedData.length === 0 ? (
+              <TableRow>
+                <TableCell 
+                  colSpan={columns.length + (renderRowActions ? 1 : 0)} 
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  {emptyMessage}
+                </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              paginatedData.map((row, index) => (
+                <TableRow key={index}>
+                  {columns.map((column) => (
+                    <TableCell 
+                      key={String(column.key)} 
+                      className={column.className}
+                    >
+                      {getCellValue(row, column)}
+                    </TableCell>
+                  ))}
+                  {renderRowActions && (
+                    <TableCell>{renderRowActions(row)}</TableCell>
+                  )}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
