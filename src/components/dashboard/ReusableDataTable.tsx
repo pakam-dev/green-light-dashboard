@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Search, SlidersHorizontal, RefreshCw, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, SlidersHorizontal, RefreshCw, ChevronLeft, ChevronRight, Loader2, MoreVertical, Download, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,6 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { UseDataTableReturn } from "@/hooks/use-data-table";
 
 export interface TableColumn<T> {
@@ -123,29 +129,67 @@ export function ReusableDataTable<T>({
       )}
 
       {/* Search and Actions */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4">
-        {showSearch && (
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={searchPlaceholder}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-64 pl-9 bg-muted/30 border-border"
-            />
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div className="flex items-center gap-2 flex-1">
+          {showSearch && (
+            <div className="relative flex-1 sm:flex-none">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={searchPlaceholder}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full sm:w-64 pl-9 bg-muted/30 border-border"
+              />
+            </div>
+          )}
+          
+          {/* Mobile hamburger menu */}
+          <div className="sm:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
+                {showRefresh && (
+                  <DropdownMenuItem onClick={handleRefresh} disabled={isRefreshing}>
+                    {isRefreshing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Refresh
+                  </DropdownMenuItem>
+                )}
+                {showFilter && (
+                  <DropdownMenuItem onClick={onFilter}>
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filter
+                  </DropdownMenuItem>
+                )}
+                {showExport && (
+                  <DropdownMenuItem onClick={onExport}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export as CSV
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        )}
-        <div className="flex items-center gap-2 sm:gap-3">
+        </div>
+        
+        {/* Desktop actions */}
+        <div className="hidden sm:flex items-center gap-3">
           {showFilter && (
-            <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none" onClick={onFilter}>
+            <Button variant="outline" size="sm" className="gap-2" onClick={onFilter}>
               <SlidersHorizontal className="h-4 w-4" />
-              <span className="hidden sm:inline">Filter</span>
+              Filter
             </Button>
           )}
           {showExport && (
-            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={onExport}>
-              <span className="sm:hidden">Export</span>
-              <span className="hidden sm:inline">Export as CSV</span>
+            <Button variant="outline" size="sm" onClick={onExport}>
+              Export as CSV
             </Button>
           )}
         </div>
@@ -153,12 +197,12 @@ export function ReusableDataTable<T>({
 
       {/* Refresh and Pagination Info */}
       {(showRefresh || showPagination) && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 md:px-6 py-2">
+        <div className="flex items-center justify-between gap-2 px-4 md:px-6 py-2">
           {showRefresh && (
             <Button 
               variant="ghost" 
               size="sm" 
-              className="gap-2 text-muted-foreground"
+              className="hidden sm:flex gap-2 text-muted-foreground"
               onClick={handleRefresh}
               disabled={isRefreshing}
             >
@@ -171,7 +215,7 @@ export function ReusableDataTable<T>({
             </Button>
           )}
           {showPagination && (
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="flex items-center gap-2 ml-auto">
               <span className="text-xs sm:text-sm text-muted-foreground">{paginationInfo}</span>
               <Button 
                 variant="outline" 
