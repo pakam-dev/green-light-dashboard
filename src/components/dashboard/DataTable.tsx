@@ -8,68 +8,51 @@ import { toast } from "sonner";
 interface PickupData {
   id: number;
   location: string;
-  phone: string;
-  createdDate: string;
-  pickupDate: string;
+  quantity: string;
+  status: string;
 }
 
 // Mock data
 const mockPickupData: PickupData[] = [
   {
     id: 1,
-    location: "cherubmall, Chevron Drive, Oj...",
-    phone: "07039093008",
-    createdDate: "2026-01-09",
-    pickupDate: "Invalid date",
+    location: "Lekki PEN",
+    quantity: "100",
+    status: "On Track",
   },
   {
     id: 2,
-    location: "Mathew Osawemen Street, Igboe...",
-    phone: "09076574427",
-    createdDate: "2026-01-09",
-    pickupDate: "Invalid date",
+    location: "Ikoyi",
+    quantity: "100",
+    status: "At Risk",
   },
   {
     id: 3,
-    location: "4th Avenue, Banana Island, Et...",
-    phone: "08145351078",
-    createdDate: "2026-01-08",
-    pickupDate: "Invalid date",
-  },
-  {
-    id: 4,
-    location: "Close 44, Victoria Garden Cit...",
-    phone: "08109964021",
-    createdDate: "2026-01-08",
-    pickupDate: "Invalid date",
-  },
-  {
-    id: 5,
-    location: "Lekki Phase 1, Lagos...",
-    phone: "08023456789",
-    createdDate: "2026-01-07",
-    pickupDate: "2026-01-10",
-  },
-  {
-    id: 6,
-    location: "Victoria Island, Lagos...",
-    phone: "08034567890",
-    createdDate: "2026-01-07",
-    pickupDate: "2026-01-09",
+    location: "Lekki",
+    quantity: "100",
+    status: "Off Track",
   },
 ];
 
-const tabs: TableTab[] = [
-  { id: "recent-pickups", label: "Recent Pickups" },
-  { id: "new-users", label: "New Users" },
-  { id: "new-aggregators", label: "New Aggregators" },
-];
+// const tabs: TableTab[] = [
+//   { id: "recent-pickups", label: "Recent Pickups" },
+//   { id: "new-users", label: "New Users" },
+//   { id: "new-aggregators", label: "New Aggregators" },
+// ];
 
 const columns: TableColumn<PickupData>[] = [
-  { key: "location", header: "Pickup Location", className: "font-medium" },
-  { key: "phone", header: "Phone" },
-  { key: "createdDate", header: "Created Date" },
-  { key: "pickupDate", header: "PickUp Date" },
+  { key: "location", header: "Location", className: "font-medium" },
+  { key: "quantity", header: "Quantity" },
+  { key: "status", header: "Status",
+    render: (item) => {
+      let colorClass = "";  
+      if (item.status === "On Track") colorClass = "green-600";
+      else if (item.status === "At Risk") colorClass = "yellow-600";
+      else if (item.status === "Off Track") colorClass = "red-600";
+      return <span className={`bg-${colorClass} py-1 px-2 rounded-full text-white font-medium`}>{item.status}</span>; 
+    }
+   },
+  // { key: "pickupDate", header: "PickUp Date" },
 ];
 
 export const DataTable = () => {
@@ -79,7 +62,7 @@ export const DataTable = () => {
   const tableState = useDataTable({
     data: mockPickupData,
     initialPageSize: 10,
-    searchableFields: ["location", "phone"],
+    searchableFields: ["location", "status"],
   });
 
   // Export handler
@@ -114,28 +97,28 @@ export const DataTable = () => {
   };
 
   // Row action renderer
-  const renderRowActions = (item: PickupData) => (
-    <Button 
-      variant="outline" 
-      size="sm"
-      onClick={() => toast.info(`Viewing details for pickup #${item.id}`)}
-    >
-      See More
-    </Button>
-  );
+  // const renderRowActions = (item: PickupData) => (
+  //   <Button 
+  //     variant="outline" 
+  //     size="sm"
+  //     onClick={() => toast.info(`Viewing details for pickup #${item.id}`)}
+  //   >
+  //     See More
+  //   </Button>
+  // );
 
   return (
     <ReusableDataTable
       tableState={tableState}
       columns={columns}
-      tabs={tabs}
+      // tabs={tabs}
       activeTab={activeTab}
       onTabChange={setActiveTab}
       searchPlaceholder="Search pickups..."
       onExport={handleExport}
       onFilter={handleFilter}
       onRefresh={handleRefresh}
-      renderRowActions={renderRowActions}
+      // renderRowActions={renderRowActions}
       emptyMessage="No pickups found"
     />
   );

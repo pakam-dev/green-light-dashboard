@@ -51,7 +51,7 @@ export const InstallPrompt = () => {
             <Download className="h-6 w-6 text-primary-foreground" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-foreground">Install GreenDash</h3>
+            <h3 className="font-semibold text-foreground">Install Pakam Dashboard</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Add this app to your home screen for quick access
             </p>

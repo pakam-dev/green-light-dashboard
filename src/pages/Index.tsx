@@ -1,13 +1,7 @@
-import { useState, useEffect } from "react";
 import { Truck, Globe, Building2, Users, Package, Clock, CheckCircle, XCircle } from "lucide-react";
-import { Sidebar } from "@/components/dashboard/Sidebar";
-import { Header } from "@/components/dashboard/Header";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { MapSection } from "@/components/dashboard/MapSection";
 import { DataTable } from "@/components/dashboard/DataTable";
-import { InstallPrompt } from "@/components/pwa/InstallPrompt";
-import { NotificationPanel } from "@/components/dashboard/NotificationPanel";
-import { initializeOneSignal } from "@/lib/onesignal";
 
 const statsRow1 = [
   {
@@ -64,45 +58,11 @@ const statsRow2 = [
 ];
 
 const Index = () => {
-  const [activeItem, setActiveItem] = useState("dashboard");
-  const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    initializeOneSignal();
-  }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <Sidebar 
-        activeItem={activeItem} 
-        onItemClick={(item) => {
-          setActiveItem(item);
-          setSidebarOpen(false);
-        }}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-
-      {/* Main Content */}
-      <div className="lg:pl-64">
-        <Header
-          onMenuClick={() => setSidebarOpen(true)}
-          onNotificationClick={() => setNotificationPanelOpen(!notificationPanelOpen)}
-        />
-
-        <main className="p-6">
+        <div>
           {/* Stats Row 1 */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             {statsRow1.map((stat, index) => (
               <StatCard
                 key={stat.title}
@@ -116,7 +76,7 @@ const Index = () => {
           </div>
 
           {/* Stats Row 2 */}
-          <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-4 grid gap-4 grid-cols-2 lg:grid-cols-4">
             {statsRow2.map((stat, index) => (
               <StatCard
                 key={stat.title}
@@ -130,28 +90,16 @@ const Index = () => {
           </div>
 
           {/* Map Section */}
-          <div className="mt-6">
+          {/* <div className="mt-6">
             <MapSection />
-          </div>
+          </div> */}
 
           {/* Data Table */}
           <div className="mt-6">
             <DataTable />
           </div>
-        </main>
-      </div>
+        </div>
 
-      {/* PWA Install Prompt */}
-      <InstallPrompt />
-
-      {/* Notification Panel */}
-      <div className="relative">
-        <NotificationPanel
-          isOpen={notificationPanelOpen}
-          onClose={() => setNotificationPanelOpen(false)}
-        />
-      </div>
-    </div>
   );
 };
 

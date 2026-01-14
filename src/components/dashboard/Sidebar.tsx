@@ -21,10 +21,10 @@ interface SidebarProps {
 
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "dropoff-locations", label: "Drop-off Locations", icon: MapPin },
-  { id: "user-agencies", label: "User Agencies", icon: Building2 },
-  { id: "location", label: "Location", icon: MapPin },
-  { id: "roles-permission", label: "Roles & Permission", icon: Shield },
+  // { id: "dropoff-locations", label: "Drop-off Locations", icon: MapPin },
+  // { id: "user-agencies", label: "User Agencies", icon: Building2 },
+  // { id: "location", label: "Location", icon: MapPin },
+  // { id: "roles-permission", label: "Roles & Permission", icon: Shield },
   { 
     id: "total-schedule", 
     label: "Total Schedule", 
@@ -35,8 +35,10 @@ const menuItems = [
       { id: "completed-schedule", label: "Completed Schedule" },
     ]
   },
-  { id: "total-dropoff", label: "Total Drop-off", icon: Truck },
+  // { id: "total-dropoff", label: "Total Drop-off", icon: Truck },
+  { id: "schedules", label: "Schedules", icon: Calendar },
   { id: "total-users", label: "Total Users", icon: Users },
+  { id: "loan", label: "Loan", icon: Users },
 ];
 
 export const Sidebar = ({ activeItem, onItemClick, isOpen = false, onClose }: SidebarProps) => {
@@ -56,11 +58,10 @@ export const Sidebar = ({ activeItem, onItemClick, isOpen = false, onClose }: Si
         {/* Logo */}
         <div className="flex h-20 items-center gap-3 px-6">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
-            <Recycle className="h-6 w-6 text-white" />
+            {/* <Recycle className="h-6 w-6 text-white" /> */}
           </div>
           <div>
             <span className="text-xl font-bold text-white">Pakam</span>
-            <p className="text-xs text-white/70">Enabling people, planet, and profit</p>
           </div>
         </div>
 
