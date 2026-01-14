@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import SchedulePage from "./pages/schedules/SchedulePage";
+import SignIn from "./pages/auth/SignIn";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<SignIn />} />
+          <Route path="/signin" element={<SignIn />} />
           <Route path="/dashboard" element={<DashboardLayout />} >
             <Route index element={<Index />} />
             <Route path="schedules" element={<SchedulePage/>}/>
