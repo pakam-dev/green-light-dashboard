@@ -57,13 +57,22 @@ const columns: TableColumn<ScheduleItem>[] = [
     key: 'status',
     header: 'Status',
     render: (item) => {
-      const statusColors: Record<string, string> = {
-        pending: 'bg-yellow-500/20 text-yellow-600',
-        missed: 'bg-red-500/20 text-red-600',
-        completed: 'bg-green-500/20 text-green-600',
+      const statusStyles: Record<string, { bg: string; text: string; border: string }> = {
+        pending: { bg: 'rgba(234, 179, 8, 0.2)', text: '#ca8a04', border: 'rgba(234, 179, 8, 0.3)' },
+        missed: { bg: 'rgba(239, 68, 68, 0.2)', text: '#dc2626', border: 'rgba(239, 68, 68, 0.3)' },
+        completed: { bg: 'rgba(34, 197, 94, 0.2)', text: '#16a34a', border: 'rgba(34, 197, 94, 0.3)' },
       };
+      const style = statusStyles[item.status] || statusStyles.pending;
       return (
-        <Badge className={`${statusColors[item.status]} capitalize`}>
+        <Badge 
+          variant="outline"
+          className="capitalize border"
+          style={{ 
+            backgroundColor: style.bg, 
+            color: style.text,
+            borderColor: style.border
+          }}
+        >
           {item.status}
         </Badge>
       );
