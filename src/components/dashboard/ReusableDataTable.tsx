@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Search, SlidersHorizontal, RefreshCw, ChevronLeft, ChevronRight, Loader2, MoreVertical, Download, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import { UseDataTableReturn } from "@/hooks/use-data-table";
 import Dropdown from "./Dropdown";
@@ -30,6 +34,13 @@ export interface TableTab {
   id: string;
   label: string;
 }
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
+const WEEKS = Array.from({ length: 52 }, (_, i) => `Week ${i + 1}`);
 
 interface ReusableDataTableProps<T> {
   // Data and configuration
@@ -52,7 +63,7 @@ interface ReusableDataTableProps<T> {
   
   // Callbacks
   onExport?: () => void;
-  onFilter?: () => void;
+  onFilter?: (filterType: string, value: string) => void;
   onRefresh?: () => Promise<void>;
   
   // Row actions
@@ -167,10 +178,38 @@ export function ReusableDataTable<T>({
                   </DropdownMenuItem>
                 )}
                 {showFilter && (
-                  <DropdownMenuItem onClick={onFilter}>
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filter
-                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Filter className="h-4 w-4 mr-2" />
+                      Filter by Month
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent className="bg-popover border border-border shadow-lg z-50 max-h-60 overflow-y-auto">
+                        {MONTHS.map((month) => (
+                          <DropdownMenuItem key={month} onClick={() => onFilter?.('month', month)}>
+                            {month}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                )}
+                {showFilter && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Filter className="h-4 w-4 mr-2" />
+                      Filter by Week
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent className="bg-popover border border-border shadow-lg z-50 max-h-60 overflow-y-auto">
+                        {WEEKS.map((week) => (
+                          <DropdownMenuItem key={week} onClick={() => onFilter?.('week', week)}>
+                            {week}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
                 )}
                 {showExport && (
                   <DropdownMenuItem onClick={onExport}>
@@ -186,33 +225,43 @@ export function ReusableDataTable<T>({
         {/* Desktop actions */}
         <div className="hidden sm:flex items-center gap-3">
           {showFilter && (
-            <>
-              <div>
-                <Dropdown
-                  trigger={
-                    <Button
-                      variant="outline"
-                      size={'sm'}
-                      className={` border-secondary-gray border !h-[32px]!py-[8px] !px-[16px] flex items-center`}
-                    >
-                     Filter by
-                    </Button>
-                  }
-                  items={[
-                    {
-                      name: 'Months',
-                      handleClick: () => {onFilter()},
-                    },
-                    {
-                      name: 'Weeks',
-                      handleClick: () => {},
-                    },
-                  ]}
-                />
-
-              </div>            
-            </>
-
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-secondary-gray border !h-[32px] !py-[8px] !px-[16px] flex items-center"
+                >
+                  Filter by
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg z-50">
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>Months</DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent className="bg-popover border border-border shadow-lg z-50 max-h-60 overflow-y-auto">
+                      {MONTHS.map((month) => (
+                        <DropdownMenuItem key={month} onClick={() => onFilter?.('month', month)}>
+                          {month}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>Weeks</DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent className="bg-popover border border-border shadow-lg z-50 max-h-60 overflow-y-auto">
+                      {WEEKS.map((week) => (
+                        <DropdownMenuItem key={week} onClick={() => onFilter?.('week', week)}>
+                          {week}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {showExport && (
             <Button variant="outline" size="sm" onClick={onExport}>
