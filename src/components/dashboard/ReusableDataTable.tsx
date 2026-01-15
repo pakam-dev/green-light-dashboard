@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UseDataTableReturn } from "@/hooks/use-data-table";
+import Dropdown from "./Dropdown";
 
 export interface TableColumn<T> {
   key: keyof T | string;
@@ -34,6 +35,7 @@ interface ReusableDataTableProps<T> {
   // Data and configuration
   tableState: UseDataTableReturn<T>;
   columns: TableColumn<T>[];
+  descText?:string;
   
   // Optional tabs
   tabs?: TableTab[];
@@ -76,6 +78,7 @@ export function ReusableDataTable<T>({
   onFilter,
   onRefresh,
   renderRowActions,
+  descText,
   emptyMessage = "No data found",
 }: ReusableDataTableProps<T>) {
   const {
@@ -89,6 +92,7 @@ export function ReusableDataTable<T>({
     totalPages,
     isRefreshing,
     refresh,
+
   } = tableState;
 
   const handleRefresh = async () => {
@@ -182,10 +186,33 @@ export function ReusableDataTable<T>({
         {/* Desktop actions */}
         <div className="hidden sm:flex items-center gap-3">
           {showFilter && (
-            <Button variant="outline" size="sm" className="gap-2" onClick={onFilter}>
-              <SlidersHorizontal className="h-4 w-4" />
-              Filter
-            </Button>
+            <>
+              <div>
+                <Dropdown
+                  trigger={
+                    <Button
+                      variant="outline"
+                      size={'sm'}
+                      className={` border-secondary-gray border !h-[32px]!py-[8px] !px-[16px] flex items-center`}
+                    >
+                     Filter by
+                    </Button>
+                  }
+                  items={[
+                    {
+                      name: 'Months',
+                      handleClick: () => {onFilter()},
+                    },
+                    {
+                      name: 'Weeks',
+                      handleClick: () => {},
+                    },
+                  ]}
+                />
+
+              </div>            
+            </>
+
           )}
           {showExport && (
             <Button variant="outline" size="sm" onClick={onExport}>
@@ -215,27 +242,31 @@ export function ReusableDataTable<T>({
             </Button>
           )}
           {showPagination && (
-            <div className="flex items-center gap-2 ml-auto">
-              <span className="text-xs sm:text-sm text-muted-foreground">{paginationInfo}</span>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={previousPage}
-                disabled={pagination.currentPage <= 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={nextPage}
-                disabled={pagination.currentPage >= totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+            <div className="flex justify-between items-center gap-6">
+              <span className="text-xs font-medium sm:text-sm text-muted-foreground">{descText}</span>
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-xs sm:text-sm text-muted-foreground">{paginationInfo}</span>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={previousPage}
+                  disabled={pagination.currentPage <= 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={nextPage}
+                  disabled={pagination.currentPage >= totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
+
           )}
         </div>
       )}

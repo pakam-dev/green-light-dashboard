@@ -111,6 +111,7 @@ export const DataTable = () => {
     <ReusableDataTable
       tableState={tableState}
       columns={columns}
+      descText={'Overall Target Qty: 2000KG'}
       // tabs={tabs}
       activeTab={activeTab}
       onTabChange={setActiveTab}

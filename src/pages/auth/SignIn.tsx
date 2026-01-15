@@ -1,20 +1,40 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLoginMutation } from "@/store/api/authApi";
 
 const SignIn = () => {
+  const navigate = useNavigate  ();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [login, { isLoading, error }] = useLoginMutation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement authentication
-    console.log("Sign in attempt:", { email, password });
+
+    try {
+      const res = await login({ email, password }).unwrap();
+
+      console.log(res)
+
+      // Save token
+      localStorage.setItem("token", res.token);
+
+      // Optional: store user if needed
+      localStorage.setItem("user", JSON.stringify(res.user));
+
+      // Redirect after login
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Login failed", err);
+    }
   };
 
   return (
@@ -85,14 +105,14 @@ const SignIn = () => {
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full">
-              Sign In
+             {isLoading? 'signing in ...':'Sign In'}
             </Button>
-            <p className="text-sm text-center text-muted-foreground">
+            {/* <p className="text-sm text-center text-muted-foreground">
               Don't have an account?{" "}
               <Link to="/signup" className="text-primary hover:underline font-medium">
                 Sign up
               </Link>
-            </p>
+            </p> */}
           </CardFooter>
         </form>
       </Card>
