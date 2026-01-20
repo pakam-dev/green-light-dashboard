@@ -46,10 +46,10 @@ const columns: TableColumn<PickupData>[] = [
   { key: "status", header: "Status",
     render: (item) => {
       let colorClass = "";  
-      if (item.status === "On Track") colorClass = "green-600";
-      else if (item.status === "At Risk") colorClass = "yellow-600";
-      else if (item.status === "Off Track") colorClass = "red-600";
-      return <span className={`bg-${colorClass} py-1 px-2 rounded-full text-white font-medium`}>{item.status}</span>; 
+      if (item.status === "On Track") colorClass = "green";
+      else if (item.status === "At Risk") colorClass = "yellow";
+      else if (item.status === "Off Track") colorClass = "red";
+      return <span style={{backgroundColor: colorClass}} className={` py-1 px-2 rounded-full text-white font-medium`}>{item.status}</span>; 
     }
    },
   // { key: "pickupDate", header: "PickUp Date" },

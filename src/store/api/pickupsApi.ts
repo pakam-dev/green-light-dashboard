@@ -1,20 +1,30 @@
 import { baseApi } from "./baseApi";
 
 // Types
+
+export interface wasteCategory {
+  catId: string;
+  name: string;
+}
+
 export interface Pickup {
-  id: number;
-  location: string;
+  id: string;
+  scheduleCreator: string;
+  createdAt: string;
+  address: string;
+  categories: wasteCategory[];
   phone: string;
-  createdDate: string;
-  pickupDate: string;
-  status?: string;
+  quantity: string;
 }
 
 export interface PickupsResponse {
-  data: Pickup[];
-  total: number;
-  page: number;
-  pageSize: number;
+  data:{
+    data: Pickup[];
+    total: number;
+    page: number;
+    pageSize: number;    
+  }
+
 }
 
 export interface PickupsParams {
@@ -36,7 +46,7 @@ export const pickupsApi = baseApi.injectEndpoints({
       providesTags: (result) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({ type: "Pickups" as const, id })),
+              ...result.data.data.map(({ id }) => ({ type: "Pickups" as const, id })),
               { type: "Pickups", id: "LIST" },
             ]
           : [{ type: "Pickups", id: "LIST" }],
@@ -48,48 +58,20 @@ export const pickupsApi = baseApi.injectEndpoints({
       providesTags: (result, error, id) => [{ type: "Pickups", id }],
     }),
 
-    // Create a new pickup
-    createPickup: builder.mutation<Pickup, Partial<Pickup>>({
-      query: (body) => ({
-        url: "/pickups",
-        method: "POST",
-        body,
+    // Get single pickup by status
+    getPickupByStatus: builder.query<PickupsResponse, string>({
+      query: (status) => ({
+        url: status === 'pending' ? `/v2/dashboard/details?type=pendingSchedules&page=1` : `/pickups/status/${status}`,
       }),
-      invalidatesTags: [{ type: "Pickups", id: "LIST" }],
+      providesTags: (result, error, status) => [{ type: "Pickups", status }],
     }),
 
-    // Update a pickup
-    updatePickup: builder.mutation<Pickup, { id: number; data: Partial<Pickup> }>({
-      query: ({ id, data }) => ({
-        url: `/pickups/${id}`,
-        method: "PATCH",
-        body: data,
-      }),
-      invalidatesTags: (result, error, { id }) => [
-        { type: "Pickups", id },
-        { type: "Pickups", id: "LIST" },
-      ],
-    }),
-
-    // Delete a pickup
-    deletePickup: builder.mutation<void, number>({
-      query: (id) => ({
-        url: `/pickups/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: (result, error, id) => [
-        { type: "Pickups", id },
-        { type: "Pickups", id: "LIST" },
-      ],
-    }),
   }),
 });
 
 // Export hooks for usage in components
 export const {
   useGetPickupsQuery,
-  useGetPickupByIdQuery,
-  useCreatePickupMutation,
-  useUpdatePickupMutation,
-  useDeletePickupMutation,
+  useGetPickupByStatusQuery,
+  useGetPickupByIdQuery
 } = pickupsApi;

@@ -8,12 +8,20 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    name: string;
+  data: {
+    _id: string;
+    firstname: string;
+    lastname: string;
+    fullname: string;
     email: string;
+    phone: string;
+    othernames: string;
+    address: string;
+    roles: string;
+    displayRole: string;
+    token: string;
   };
+
 }
 
 export interface ForgotPasswordRequest {

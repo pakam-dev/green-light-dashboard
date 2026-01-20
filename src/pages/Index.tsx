@@ -1,7 +1,10 @@
 import { Truck, Globe, Building2, Users, Package, Clock, CheckCircle, XCircle } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { MapSection } from "@/components/dashboard/MapSection";
 import { DataTable } from "@/components/dashboard/DataTable";
+import { useState } from "react";
+import { useGetPendingSchedulesQuery } from "@/store";
+import MapWrapper from "@/components/dashboard/MapSection";
+
 
 const statsRow1 = [
   {
@@ -58,6 +61,18 @@ const statsRow2 = [
 ];
 
 const Index = () => {
+  const [pendingData, setPendingData] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [markerId, setMarkerId] = useState(null);
+  
+  const openInfo = (mark, markId) => {
+    setMarkerId(markId);
+    setIsOpen(mark);
+  };
+
+  const {data, isLoading, isError} = useGetPendingSchedulesQuery();
+
+  console.log("Pending Schedules Data:", data);
 
   return (
         <div>
@@ -90,9 +105,14 @@ const Index = () => {
           </div>
 
           {/* Map Section */}
-          {/* <div className="mt-6">
-            <MapSection />
-          </div> */}
+          <div className="mt-6">
+            <MapWrapper
+              schedulesLocation={pendingData}
+              markerId={markerId}
+              isOpen={isOpen}
+              openInfo={openInfo}
+            />
+          </div>
 
           {/* Data Table */}
           <div className="mt-6">

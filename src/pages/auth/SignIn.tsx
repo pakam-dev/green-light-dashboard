@@ -25,13 +25,15 @@ const SignIn = () => {
       console.log(res)
 
       // Save token
-      localStorage.setItem("token", res.token);
+      localStorage.setItem("token", res.data.token);
 
       // Optional: store user if needed
-      localStorage.setItem("user", JSON.stringify(res.user));
+      localStorage.setItem("user", JSON.stringify(res.data));
 
       // Redirect after login
-      navigate("/dashboard");
+      if(res.data){
+        navigate("/dashboard");
+      }
     } catch (err) {
       console.error("Login failed", err);
     }

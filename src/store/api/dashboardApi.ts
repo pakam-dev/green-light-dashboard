@@ -26,10 +26,17 @@ export interface ActivityItem {
   user?: string;
 }
 
+
+
 // Dashboard API endpoints
 export const dashboardApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Get dashboard statistics
+    getPendingSchedules: builder.query<any, void>({
+      query: () => "/v2/dashboard/details?type=pendingSchedules&page=1",
+      providesTags: [{ type: "Dashboard", id: "STATS" }],
+    }),
+
     getDashboardStats: builder.query<DashboardStats, void>({
       query: () => "/dashboard/stats",
       providesTags: [{ type: "Dashboard", id: "STATS" }],
@@ -60,4 +67,5 @@ export const {
   useGetDashboardStatsQuery,
   useGetRevenueDataQuery,
   useGetRecentActivityQuery,
+  useGetPendingSchedulesQuery,
 } = dashboardApi;
