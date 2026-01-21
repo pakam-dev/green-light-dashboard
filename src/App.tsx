@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import SchedulePage from "./pages/schedules/SchedulePage";
 import SignIn from "./pages/auth/SignIn";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -20,7 +21,14 @@ const App = () => (
         <Routes>
           <Route path="/" element={<SignIn />} />
           <Route path="/signin" element={<SignIn />} />
-          <Route path="/dashboard" element={<DashboardLayout />} >
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            } 
+          >
             <Route index element={<Index />} />
             <Route path="schedules" element={<SchedulePage/>}/>
           </Route>
