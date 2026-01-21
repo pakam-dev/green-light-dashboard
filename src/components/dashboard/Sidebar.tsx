@@ -25,16 +25,16 @@ const menuItems = [
   // { id: "user-agencies", label: "User Agencies", icon: Building2 },
   // { id: "location", label: "Location", icon: MapPin },
   // { id: "roles-permission", label: "Roles & Permission", icon: Shield },
-  { 
-    id: "total-schedule", 
-    label: "Total Schedule", 
-    icon: Calendar,
-    hasSubmenu: true,
-    submenu: [
-      { id: "pending-schedule", label: "Pending Schedule" },
-      { id: "completed-schedule", label: "Completed Schedule" },
-    ]
-  },
+  // { 
+  //   id: "total-schedule", 
+  //   label: "Total Schedule", 
+  //   icon: Calendar,
+  //   hasSubmenu: true,
+  //   submenu: [
+  //     { id: "pending-schedule", label: "Pending Schedule" },
+  //     { id: "completed-schedule", label: "Completed Schedule" },
+  //   ]
+  // },
   // { id: "total-dropoff", label: "Total Drop-off", icon: Truck },
   { id: "schedules", label: "Schedules", icon: Calendar },
   { id: "total-users", label: "Total Users", icon: Users },
@@ -71,11 +71,11 @@ export const Sidebar = ({ activeItem, onItemClick, isOpen = false, onClose }: Si
             <div key={item.id}>
               <button
                 onClick={() => {
-                  if (item.hasSubmenu) {
-                    toggleSubmenu(item.id);
-                  } else {
+                  // if (item.hasSubmenu) {
+                  //   toggleSubmenu(item.id);
+                  // } else {
                     onItemClick(item.id);
-                  }
+                  // }
                 }}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white transition-colors",
@@ -84,18 +84,18 @@ export const Sidebar = ({ activeItem, onItemClick, isOpen = false, onClose }: Si
               >
                 <item.icon className="h-5 w-5" />
                 <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
-                {item.hasSubmenu && (
+                {/* {item.hasSubmenu && (
                   <ChevronDown 
                     className={cn(
                       "h-4 w-4 transition-transform",
                       expandedMenu === item.id && "rotate-180"
                     )} 
                   />
-                )}
+                )} */}
               </button>
-              {item.hasSubmenu && expandedMenu === item.id && (
+              {/* {item?.hasSubmenu && expandedMenu === item.id && (
                 <div className="ml-8 mt-1 space-y-1">
-                  {item.submenu?.map((subitem) => (
+                  {item?.submenu?.map((subitem) => (
                     <button
                       key={subitem.id}
                       onClick={() => onItemClick(subitem.id)}
@@ -108,7 +108,7 @@ export const Sidebar = ({ activeItem, onItemClick, isOpen = false, onClose }: Si
                     </button>
                   ))}
                 </div>
-              )}
+              )} */}
             </div>
           ))}
         </nav>

@@ -33,7 +33,14 @@ const columns: TableColumn<ScheduleItem>[] = [
   // { key: 'id', header: 'Schedule ID' },
   { key: 'scheduleCreator', header: 'Fullname' },
   { key: 'address', header: 'Pickup Location' },
-  { key: 'createdAt', header: 'Created At' },
+  { key: 'createdAt', 
+    header: 'Created At',
+    render: (row) => {
+      const date = new Date(row.createdAt);
+      return date.toLocaleDateString() 
+      // + ' ' + date.toLocaleTimeString();
+    }
+  },
   {
     key: 'categories',
     header: 'Waste Categories',
@@ -84,13 +91,18 @@ const ScheduleTable = ({ data, emptyMessage }: ScheduleTableProps) => {
 
 const SchedulePage = () => {
   const [mainTab, setMainTab] = useState('pending');
-  const [pendingHouseholdSchedule, setPendingHouseholdSchedule] = useState([])
+  const [scheduleType, setScheduleType] =  useState("pending")
+  const [schedules, setSchedules] = useState([])
   
-  const { data: pendingpickupData, isLoading } = useGetPickupByStatusQuery('pending');
+  const { data: pendingpickupData, isLoading } = useGetPickupByStatusQuery(scheduleType);
+
+  useEffect(()=>{
+    setScheduleType(mainTab)
+  },[mainTab])
 
   useEffect(()=>{
     if(pendingpickupData){
-      setPendingHouseholdSchedule(pendingpickupData.data.data)  
+      setSchedules(pendingpickupData.data.data)  
     }
   },[pendingpickupData])
 
@@ -119,7 +131,7 @@ const SchedulePage = () => {
               <ScheduleTable data={mockInstantBuyPending} emptyMessage="No pending schedules from Instant Buy" />
             </TabsContent>
             <TabsContent value="household">
-              <ScheduleTable data={pendingHouseholdSchedule} emptyMessage="No pending schedules from Household App" />
+              <ScheduleTable data={schedules} emptyMessage="No pending schedules from Household App" />
             </TabsContent>
           </Tabs>
         </TabsContent>
@@ -134,7 +146,7 @@ const SchedulePage = () => {
               <ScheduleTable data={mockInstantBuyMissed} emptyMessage="No missed schedules from Instant Buy" />
             </TabsContent>
             <TabsContent value="household">
-              <ScheduleTable data={mockHouseholdMissed} emptyMessage="No missed schedules from Household App" />
+              <ScheduleTable data={schedules} emptyMessage="No missed schedules from Household App" />
             </TabsContent>
           </Tabs>
         </TabsContent>
@@ -149,7 +161,7 @@ const SchedulePage = () => {
               <ScheduleTable data={mockInstantBuyCompleted} emptyMessage="No completed schedules from Instant Buy" />
             </TabsContent>
             <TabsContent value="household">
-              <ScheduleTable data={mockHouseholdCompleted} emptyMessage="No completed schedules from Household App" />
+              <ScheduleTable data={schedules} emptyMessage="No completed schedules from Household App" />
             </TabsContent>
           </Tabs>
         </TabsContent>

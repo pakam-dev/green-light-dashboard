@@ -61,7 +61,10 @@ export const pickupsApi = baseApi.injectEndpoints({
     // Get single pickup by status
     getPickupByStatus: builder.query<PickupsResponse, string>({
       query: (status) => ({
-        url: status === 'pending' ? `/v2/dashboard/details?type=pendingSchedules&page=1` : `/pickups/status/${status}`,
+        url: status === 'pending' ? `/v2/dashboard/details?type=pendingSchedules&page=1` :
+        status === 'completed' ? `/v2/dashboard/details?type=totalCompleted&page=1`:
+        status === 'missed' ? `/v2/dashboard/details?type=missedPickups&page=1`:
+        `/pickups/status/${status}`,
       }),
       providesTags: (result, error, status) => [{ type: "Pickups", status }],
     }),
