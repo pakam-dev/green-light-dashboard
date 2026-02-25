@@ -1,12 +1,28 @@
-import { Bell, Menu, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Bell, Menu, ChevronDown, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   onMenuClick?: () => void;
   onNotificationClick?: () => void;
+  onLogout?: () => void;
+  userName?: string;
 }
 
-export const Header = ({ onMenuClick, onNotificationClick }: HeaderProps) => {
+export const Header = ({ onMenuClick, onNotificationClick, onLogout, userName = "Pakam admin" }: HeaderProps) => {
+  const initials = userName
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background px-6">
       <div className="flex items-center gap-4">
@@ -20,14 +36,6 @@ export const Header = ({ onMenuClick, onNotificationClick }: HeaderProps) => {
       </div>
 
       <div className="flex items-center gap-4">
-        <Button variant="outline" className="gap-2">
-          <SlidersHorizontal className="h-4 w-4" />
-          Filter
-        </Button>
-        <Button variant="outline" className="gap-2">
-          Available Location
-          <ChevronDown className="h-4 w-4" />
-        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -36,11 +44,34 @@ export const Header = ({ onMenuClick, onNotificationClick }: HeaderProps) => {
         >
           <Bell className="h-5 w-5" />
         </Button>
-        <div className="flex items-center gap-3 border-l border-border pl-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500 text-white font-semibold text-sm">
-            FL
-          </div>
-          <span className="text-sm font-medium text-primary">Pakam admin</span>
+
+        {/* User avatar dropdown */}
+        <div className="border-l border-border pl-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted transition-colors outline-none">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500 text-white font-semibold text-sm">
+                  {initials}
+                </div>
+                <span className="text-sm font-medium text-primary hidden sm:block">{userName}</span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem className="gap-2 cursor-pointer" disabled>
+                <User className="h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                onClick={onLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

@@ -22,7 +22,7 @@ const SignIn = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard/reports";
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, location.state]);
@@ -55,7 +55,7 @@ const SignIn = () => {
 
       // Redirect after login
       if(res.data){
-        navigate("/dashboard");
+        navigate("/dashboard/reports");
       }
     } catch (err) {
       console.error("Login failed", err);

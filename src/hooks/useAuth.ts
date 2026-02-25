@@ -71,8 +71,8 @@ export const useAuth = () => {
   }, [checkAuth]);
 
   const logout = useCallback(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.clear();
+    sessionStorage.clear();
     setAuthState({
       isAuthenticated: false,
       isLoading: false,

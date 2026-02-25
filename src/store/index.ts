@@ -34,4 +34,5 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 export * from "./api/pickupsApi";
 export * from "./api/usersApi";
 export * from "./api/dashboardApi";
+export * from "./api/reportsApi";
 export * from "./slices/uiSlice";

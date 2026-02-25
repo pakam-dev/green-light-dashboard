@@ -8,7 +8,8 @@ import { DataTable } from "@/components/dashboard/DataTable";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { NotificationPanel } from "@/components/dashboard/NotificationPanel";
 import { initializeOneSignal } from "@/lib/onesignal";
-import { Outlet, useNavigate, useNavigation } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const statsRow1 = [
   {
@@ -64,22 +65,26 @@ const statsRow2 = [
   },
 ];
 
-const exisiting_routes = ['schedules', 'loan']
+const exisiting_routes = ['schedules', 'loan', 'reports']
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
-  const [activeItem, setActiveItem] = useState("dashboard");
+  const { logout, user } = useAuth();
+  const [activeItem, setActiveItem] = useState("reports");
   const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/signin", { replace: true });
+  };
 
   useEffect(() => {
     initializeOneSignal();
   }, []);
 
   useEffect(()=>{
-    if(activeItem === 'dashboard'){
-      navigate('/dashboard')
-    }else if(exisiting_routes.includes(activeItem)){
+    if(exisiting_routes.includes(activeItem)){
       navigate(`/dashboard/${activeItem}`)
     }
   },[activeItem])
@@ -95,14 +100,15 @@ const DashboardLayout = () => {
       )}
 
       {/* Sidebar */}
-      <Sidebar 
-        activeItem={activeItem} 
+      <Sidebar
+        activeItem={activeItem}
         onItemClick={(item) => {
           setActiveItem(item);
           setSidebarOpen(false);
         }}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        onLogout={handleLogout}
       />
 
       {/* Main Content */}
@@ -110,6 +116,8 @@ const DashboardLayout = () => {
         <Header
           onMenuClick={() => setSidebarOpen(true)}
           onNotificationClick={() => setNotificationPanelOpen(!notificationPanelOpen)}
+          onLogout={handleLogout}
+          userName={user?.name}
         />
 
         <main className="px-2 md:p-6">
