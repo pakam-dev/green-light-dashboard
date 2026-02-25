@@ -37,7 +37,7 @@ export const reportsApi = baseApi.injectEndpoints({
 
     // ── Locations ─────────────────────────────────────────────────────────
     getWasteByLocation: builder.query<any, ReportQueryParams>({
-      query: (p) => ({ url: "/v2/reports/waste-by-location", params: buildParams(p) }),
+      query: (p) => ({ url: "/dashboard/analytics/waste-by-location", params: buildParams(p) }),
       providesTags: [{ type: "Dashboard", id: "REPORT_LOC_WASTE" }],
     }),
     getPickupsByLocation: builder.query<any, ReportQueryParams>({

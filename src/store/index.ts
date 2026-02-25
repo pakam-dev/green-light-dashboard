@@ -35,4 +35,6 @@ export * from "./api/pickupsApi";
 export * from "./api/usersApi";
 export * from "./api/dashboardApi";
 export * from "./api/reportsApi";
+export * from "./api/loanApi";
+export * from "./api/instantBuyApi";
 export * from "./slices/uiSlice";

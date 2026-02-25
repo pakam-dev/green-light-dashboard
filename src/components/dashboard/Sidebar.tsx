@@ -5,6 +5,8 @@ import {
   Users,
   Calendar,
   BarChart2,
+  Landmark,
+  CreditCard,
   LogOut,
 } from "lucide-react";
 
@@ -18,10 +20,11 @@ interface SidebarProps {
 
 const menuItems = [
   // { id: "dashboard",   label: "Dashboard",  icon: LayoutDashboard },
-  // { id: "schedules",   label: "Schedules",  icon: Calendar },
   // { id: "total-users", label: "Total Users", icon: Users },
-  // { id: "loan",        label: "Loan",        icon: Users },
-  { id: "reports", label: "Dashboard", icon: BarChart2 },
+  { id: "reports",     label: "Dashboard",  icon: BarChart2  },
+  { id: "schedules",   label: "Schedules",  icon: Calendar   },
+  { id: "loan",        label: "Loan",       icon: Landmark   },
+  { id: "instantbuy",  label: "InstantBuy", icon: CreditCard },
 ];
 
 export const Sidebar = ({ activeItem, onItemClick, isOpen = false, onClose, onLogout }: SidebarProps) => {
