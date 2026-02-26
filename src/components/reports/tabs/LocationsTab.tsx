@@ -1,14 +1,9 @@
-import { useMemo } from "react";
 import { MapPin, TrendingUp, Award, AlertCircle } from "lucide-react";
 import { ReportFilters } from "@/hooks/useReportFilters";
 import { LocationWasteChart } from "@/components/reports/LocationWasteChart";
 import { LocationPickupsChart } from "@/components/reports/LocationPickupsChart";
-import {
-  LocationWasteData,
-  generateWasteByLocation,
-  generatePickupsByLocation,
-} from "@/lib/reportsMockData";
-import { useGetWasteByLocationQuery } from "@/store/api/reportsApi";
+import { LocationWasteData, LocationPickupsData } from "@/lib/reportsMockData";
+import { useGetWasteByLocationQuery, useGetPickupsByLocationQuery } from "@/store/api/reportsApi";
 
 interface LocationsTabProps {
   filters: ReportFilters;
@@ -24,7 +19,7 @@ function normaliseWasteByLocation(raw: any): LocationWasteData[] {
 
   return rows.map((r) => ({
     location:
-      r.location ?? r.locationName ?? r.name ?? r.city ?? "Unknown",
+      r.location ?? r.locationName ?? r.name ?? r.city ?? r.state ?? "Unknown",
     wasteKg:
       r.wasteKg ??
       r.totalWaste ??
@@ -43,41 +38,35 @@ function normaliseWasteByLocation(raw: any): LocationWasteData[] {
 }
 
 export const LocationsTab = ({ filters }: LocationsTabProps) => {
-  // Real API call
-  const { data: apiData, isSuccess } = useGetWasteByLocationQuery(filters);
+  const { data: apiWasteData  } = useGetWasteByLocationQuery(filters);
+  const { data: pickupsLocRes } = useGetPickupsByLocationQuery(filters);
 
-  // Fallback mock data — generated when API has no data
-  const mockWasteData = useMemo(
-    () => generateWasteByLocation(filters.from, filters.to),
-    [filters.from, filters.to]
-  );
-  const pickupsData = useMemo(
-    () => generatePickupsByLocation(filters.from, filters.to),
-    [filters.from, filters.to]
-  );
+  const wasteData: LocationWasteData[] = normaliseWasteByLocation(apiWasteData);
 
-  // Prefer real API data; fall back to mock
-  const wasteData: LocationWasteData[] = useMemo(() => {
-    if (isSuccess && apiData) {
-      const normalised = normaliseWasteByLocation(apiData);
-      if (normalised.length > 0) return normalised;
-    }
-    return mockWasteData;
-  }, [isSuccess, apiData, mockWasteData]);
+  const pickupsData: LocationPickupsData[] = (pickupsLocRes?.data ?? []).map((r: any) => ({
+    location:  r.state,
+    completed: Math.round(r.count * (r.completedPct / 100)),
+    missed:    Math.round(r.count * (1 - r.completedPct / 100)),
+  }));
 
-  const top = wasteData[0];
+  const top    = wasteData[0];
   const bottom = wasteData[wasteData.length - 1];
-  const bestCompletion = [...pickupsData].sort((a, b) => {
-    const rA = a.completed / (a.completed + a.missed);
-    const rB = b.completed / (b.completed + b.missed);
-    return rB - rA;
-  })[0];
+
+  const bestCompletion = pickupsData.length > 0
+    ? [...pickupsData].sort((a, b) => {
+        const totA = a.completed + a.missed;
+        const totB = b.completed + b.missed;
+        const rA   = totA > 0 ? a.completed / totA : 0;
+        const rB   = totB > 0 ? b.completed / totB : 0;
+        return rB - rA;
+      })[0]
+    : undefined;
+
   const bcRate = bestCompletion
-    ? (
-        (bestCompletion.completed /
-          (bestCompletion.completed + bestCompletion.missed)) *
-        100
-      ).toFixed(1)
+    ? (() => {
+        const tot = bestCompletion.completed + bestCompletion.missed;
+        return tot > 0 ? ((bestCompletion.completed / tot) * 100).toFixed(1) : "0";
+      })()
     : "0";
 
   return (
@@ -91,10 +80,10 @@ export const LocationsTab = ({ filters }: LocationsTabProps) => {
           <div>
             <p className="text-sm text-muted-foreground">Top Location</p>
             <p className="text-lg font-bold text-foreground mt-0.5">
-              {top?.location}
+              {top?.location ?? "—"}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {top ? `${(top.wasteKg / 1000).toFixed(1)}k kg collected` : "—"}
+              {top ? `${(top.wasteKg / 1000).toFixed(1)}k kg collected` : "No data yet"}
             </p>
           </div>
         </div>
@@ -106,10 +95,10 @@ export const LocationsTab = ({ filters }: LocationsTabProps) => {
           <div>
             <p className="text-sm text-muted-foreground">Best Completion Rate</p>
             <p className="text-lg font-bold text-foreground mt-0.5">
-              {bestCompletion?.location}
+              {bestCompletion?.location ?? "—"}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {bcRate}% completion
+              {bestCompletion ? `${bcRate}% completion` : "No data yet"}
             </p>
           </div>
         </div>
@@ -121,12 +110,12 @@ export const LocationsTab = ({ filters }: LocationsTabProps) => {
           <div>
             <p className="text-sm text-muted-foreground">Needs Attention</p>
             <p className="text-lg font-bold text-foreground mt-0.5">
-              {bottom?.location}
+              {bottom?.location ?? "—"}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {bottom
                 ? `${(bottom.wasteKg / 1000).toFixed(1)}k kg — lowest volume`
-                : "—"}
+                : "No data yet"}
             </p>
           </div>
         </div>

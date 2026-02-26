@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,11 @@ const SignIn = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [login, { isLoading, error }] = useLoginMutation();
+  const [login, { isLoading, error, reset }] = useLoginMutation();
+
+  const errorMessage = error
+    ? ((error as any)?.data?.message ?? "Login failed. Please try again.")
+    : null;
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -45,7 +49,7 @@ const SignIn = () => {
     try {
       const res = await login({ email, password }).unwrap();
 
-      console.log(res)
+      console.log('res',res)
 
       // Save token
       localStorage.setItem("token", res.data.token);
@@ -87,7 +91,7 @@ const SignIn = () => {
                   type="email"
                   placeholder="name@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); if (error) reset(); }}
                   className="pl-10"
                   required
                 />
@@ -110,7 +114,7 @@ const SignIn = () => {
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); if (error) reset(); }}
                   className="pl-10 pr-10"
                   required
                 />
@@ -129,8 +133,14 @@ const SignIn = () => {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full">
-             {isLoading? 'signing in ...':'Sign In'}
+            {errorMessage && (
+              <div className="w-full flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Signing in…" : "Sign In"}
             </Button>
             {/* <p className="text-sm text-center text-muted-foreground">
               Don't have an account?{" "}

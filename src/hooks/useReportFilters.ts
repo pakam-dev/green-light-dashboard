@@ -9,14 +9,6 @@ export interface ReportFilters {
   activeTab: string;
 }
 
-export const LOCATIONS = [
-  { value: "all", label: "All Locations" },
-  { value: "lagos", label: "Lagos" },
-  { value: "abuja", label: "Abuja" },
-  { value: "port-harcourt", label: "Port Harcourt" },
-  { value: "ibadan", label: "Ibadan" },
-  { value: "kano", label: "Kano" },
-];
 
 export const PRESET_RANGES = [
   { label: "Last 7 days",   days: 7   },

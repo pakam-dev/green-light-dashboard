@@ -113,37 +113,19 @@ export function generateSummary(from: Date, to: Date): ReportSummary {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// LOCATIONS TAB
+// LOCATIONS TAB — types only (data comes from API)
 // ════════════════════════════════════════════════════════════════════════════
-
-const LOCATIONS = ["Lagos", "Abuja", "Port Harcourt", "Ibadan", "Kano", "Enugu"];
 
 export interface LocationWasteData {
   location: string;
   wasteKg: number;
   pickups: number;
 }
-export function generateWasteByLocation(from: Date, to: Date): LocationWasteData[] {
-  const seed = from.getTime() + to.getTime();
-  return LOCATIONS.map((loc, i) => ({
-    location: loc,
-    wasteKg: randInt(seed + i * 7, 40000, 220000),
-    pickups: randInt(seed + i * 13, 800, 5000),
-  })).sort((a, b) => b.wasteKg - a.wasteKg);
-}
 
 export interface LocationPickupsData {
   location: string;
   completed: number;
   missed: number;
-}
-export function generatePickupsByLocation(from: Date, to: Date): LocationPickupsData[] {
-  const seed = from.getTime() + to.getTime();
-  return LOCATIONS.map((loc, i) => ({
-    location: loc,
-    completed: randInt(seed + i * 11, 600, 4000),
-    missed: randInt(seed + i * 17, 80, 600),
-  }));
 }
 
 // ════════════════════════════════════════════════════════════════════════════

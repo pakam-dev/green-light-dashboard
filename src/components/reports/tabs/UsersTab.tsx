@@ -1,15 +1,11 @@
-import { useMemo } from "react";
 import { Users, UserPlus, RefreshCw, Activity } from "lucide-react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReportFilters } from "@/hooks/useReportFilters";
 import { UserActivityHeatmap } from "@/components/reports/UserActivityHeatmap";
 import { UserGrowthChart } from "@/components/reports/UserGrowthChart";
-import {
-  generateUserActivityHeatmap,
-  generateUserGrowth,
-  generateUsersSummary,
-} from "@/lib/reportsMockData";
+import { UserGrowthPoint } from "@/lib/reportsMockData";
+import { useGetUserGrowthQuery, useGetReportSummaryQuery } from "@/store/api/reportsApi";
 
 interface UsersTabProps {
   filters: ReportFilters;
@@ -43,9 +39,30 @@ const UserKpiCard = ({ label, value, delta, icon: Icon, iconBg }: UserKpiCardPro
 };
 
 export const UsersTab = ({ filters }: UsersTabProps) => {
-  const summary      = useMemo(() => generateUsersSummary(filters.from, filters.to),        [filters.from, filters.to]);
-  const heatmapData  = useMemo(() => generateUserActivityHeatmap(filters.from, filters.to), [filters.from, filters.to]);
-  const growthData   = useMemo(() => generateUserGrowth(filters.from, filters.to),          [filters.from, filters.to]);
+  const { data: overviewRes } = useGetReportSummaryQuery(filters);
+  const { data: growthRes   } = useGetUserGrowthQuery(filters);
+
+  const growthData: UserGrowthPoint[] = (growthRes?.data ?? []).map((r: any) => ({
+    date:     r.period,
+    newUsers: r.newUsers,
+    total:    r.totalUsers,
+  }));
+
+  const growthArr     = growthRes?.data ?? [];
+  const newUsersTotal = growthArr.reduce((sum: number, r: any) => sum + (r.newUsers ?? 0), 0);
+  const activeUsers   = overviewRes?.totalUsers   ?? 0;
+  const totalPickups  = overviewRes?.totalPickups  ?? 0;
+
+  const summary = {
+    newUsers:          newUsersTotal,
+    activeUsers,
+    retentionRate:     0,
+    avgPickupsPerUser: activeUsers > 0 ? Math.round((totalPickups / activeUsers) * 10) / 10 : 0,
+    newUsersDelta:     0,
+    activeUsersDelta:  0,
+    retentionDelta:    0,
+    avgPickupsDelta:   0,
+  };
 
   return (
     <div className="space-y-6">
@@ -81,8 +98,8 @@ export const UsersTab = ({ filters }: UsersTabProps) => {
         />
       </div>
 
-      {/* User activity heatmap — full width */}
-      <UserActivityHeatmap data={heatmapData} from={filters.from} to={filters.to} />
+      {/* User activity heatmap — full width (passes [] until backend delivers per-user format) */}
+      <UserActivityHeatmap data={[]} from={filters.from} to={filters.to} />
 
       {/* User growth chart */}
       <UserGrowthChart data={growthData} />

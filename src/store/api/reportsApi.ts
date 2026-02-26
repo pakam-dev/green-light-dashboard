@@ -21,6 +21,15 @@ import { format } from "date-fns";
  *   endDate   — "YYYY-MM-DD" (inclusive)
  *   location  — Nigerian state name, omitted for nationwide
  *
+ * ── Endpoint 0 ───────────────────────────────────────────────────────
+ * GET /v2/locations
+ *   No query params required.
+ *   Response: { data: [ { value: string, label: string }, ... ] }
+ *     value — URL-safe slug (e.g. "lagos", "abuja-fct", "port-harcourt")
+ *     label — Human-readable state name (e.g. "Lagos", "Abuja (FCT)")
+ *   Return only states/cities that have at least one pickup record.
+ *   Sort alphabetically by label.
+ *
  * ── Endpoint 1 ───────────────────────────────────────────────────────
  * GET /v2/reports/summary
  *   Response: { totalPickups, completedPickups, totalWaste (kg),
@@ -120,6 +129,31 @@ function buildParams(p: ReportQueryParams) {
  */
 export const reportsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+
+    // ── Locations list (for filter dropdown) ──────────────────────────────────
+
+    /**
+     * GET /v2/locations
+     *
+     * Returns the list of Nigerian states/cities that have at least one
+     * pickup record. Used to populate the location filter dropdown.
+     *
+     * Expected response:
+     * {
+     *   data: [
+     *     { value: "lagos",        label: "Lagos"         },
+     *     { value: "abuja-fct",    label: "Abuja (FCT)"   },
+     *     { value: "port-harcourt",label: "Port Harcourt" },
+     *     ...   // sorted alphabetically
+     *   ]
+     * }
+     *
+     * Used by: Reports page — location filter select dropdown.
+     */
+    getLocations: builder.query<{ data: { value: string; label: string }[] }, void>({
+      query: () => ({ url: "/v2/locations" }),
+      providesTags: [{ type: "Dashboard", id: "LOCATIONS" }],
+    }),
 
     // ── Overview ──────────────────────────────────────────────────────────────
 
@@ -383,6 +417,7 @@ export const reportsApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetLocationsQuery,
   useGetReportSummaryQuery,
   useGetPickupsByPeriodQuery,
   useGetWasteTrendQuery,

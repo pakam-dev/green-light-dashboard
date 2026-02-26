@@ -3,23 +3,47 @@ import { ReportStatsSummary } from "@/components/reports/ReportStatsSummary";
 import { ReportBarChart } from "@/components/reports/ReportBarChart";
 import { ReportLineChart } from "@/components/reports/ReportLineChart";
 import { ReportHeatmap } from "@/components/reports/ReportHeatmap";
+import { ReportSummary, PickupBarData, TrendPoint } from "@/lib/reportsMockData";
 import {
-  generateSummary,
-  generatePickupsByMonth,
-  generateWeeklyTrend,
-  generateDailyActivity,
-} from "@/lib/reportsMockData";
-import { useMemo } from "react";
+  useGetReportSummaryQuery,
+  useGetPickupsByPeriodQuery,
+  useGetWasteTrendQuery,
+} from "@/store/api/reportsApi";
 
 interface OverviewTabProps {
   filters: ReportFilters;
 }
 
 export const OverviewTab = ({ filters }: OverviewTabProps) => {
-  const summary     = useMemo(() => generateSummary(filters.from, filters.to),          [filters.from, filters.to]);
-  const barData     = useMemo(() => generatePickupsByMonth(filters.from, filters.to),   [filters.from, filters.to]);
-  const lineData    = useMemo(() => generateWeeklyTrend(filters.from, filters.to),      [filters.from, filters.to]);
-  const heatmapData = useMemo(() => generateDailyActivity(filters.from, filters.to),    [filters.from, filters.to]);
+  const { data: summaryRes } = useGetReportSummaryQuery(filters);
+  const { data: pickupsRes } = useGetPickupsByPeriodQuery(filters);
+  const { data: wasteRes   } = useGetWasteTrendQuery(filters);
+
+  const summary: ReportSummary = {
+    totalPickups:    summaryRes?.totalPickups ?? 0,
+    totalWasteKg:    summaryRes?.totalWaste   ?? 0,
+    activeUsers:     summaryRes?.totalUsers   ?? 0,
+    completionRate:  summaryRes?.totalPickups
+      ? (summaryRes.completedPickups / summaryRes.totalPickups) * 100
+      : 0,
+    pickupsDelta:    0,
+    wasteDelta:      0,
+    usersDelta:      0,
+    completionDelta: 0,
+  };
+
+  const barData: PickupBarData[] = (pickupsRes?.data ?? []).map((r: any) => ({
+    month:     r.period,
+    completed: r.completed,
+    missed:    r.cancelled,
+    pending:   r.pending,
+  }));
+
+  const lineData: TrendPoint[] = (wasteRes?.data ?? []).map((r: any) => ({
+    week:     r.period,
+    wasteKg:  r.wasteKg,
+    newUsers: 0,
+  }));
 
   return (
     <div className="space-y-6">
@@ -28,7 +52,7 @@ export const OverviewTab = ({ filters }: OverviewTabProps) => {
         <ReportBarChart data={barData} />
         <ReportLineChart data={lineData} />
       </div>
-      <ReportHeatmap data={heatmapData} />
+      <ReportHeatmap data={[]} />
     </div>
   );
 };

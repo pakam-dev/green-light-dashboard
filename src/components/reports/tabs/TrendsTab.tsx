@@ -1,17 +1,32 @@
-import { useMemo } from "react";
 import { ReportFilters } from "@/hooks/useReportFilters";
 import { PickupFrequencyChart } from "@/components/reports/PickupFrequencyChart";
 import { MoMComparisonTable } from "@/components/reports/MoMComparisonTable";
-import { generatePickupFrequency, generateMoMComparison } from "@/lib/reportsMockData";
+import { MoMRow } from "@/lib/reportsMockData";
+import { useGetMonthOnMonthQuery } from "@/store/api/reportsApi";
 import { differenceInDays, format } from "date-fns";
 
 interface TrendsTabProps {
   filters: ReportFilters;
 }
 
+function inferFormat(metric: string): MoMRow["format"] {
+  const m = metric.toLowerCase();
+  if (m.includes("revenue") || m.includes("naira")) return "naira";
+  if (m.includes("waste") || m.includes("kg"))      return "kg";
+  if (m.includes("rate") || m.includes("pct") || m.includes("%")) return "percent";
+  return "number";
+}
+
 export const TrendsTab = ({ filters }: TrendsTabProps) => {
-  const frequencyData = useMemo(() => generatePickupFrequency(filters.from, filters.to),  [filters.from, filters.to]);
-  const momData       = useMemo(() => generateMoMComparison(filters.from, filters.to),    [filters.from, filters.to]);
+  const { data: momRes } = useGetMonthOnMonthQuery(filters);
+
+  const momData: MoMRow[] = (momRes?.data ?? []).map((r: any) => ({
+    metric:   r.metric,
+    current:  r.current,
+    previous: r.previous,
+    change:   r.changePct,
+    format:   inferFormat(r.metric),
+  }));
 
   const days = differenceInDays(filters.to, filters.from) + 1;
   const priorFrom = new Date(filters.from);
@@ -39,8 +54,8 @@ export const TrendsTab = ({ filters }: TrendsTabProps) => {
         </div>
       </div>
 
-      {/* Frequency chart — full width */}
-      <PickupFrequencyChart data={frequencyData} />
+      {/* Frequency chart — passes [] until backend delivers a daily time-series endpoint */}
+      <PickupFrequencyChart data={[]} />
 
       {/* MoM table — full width */}
       <MoMComparisonTable data={momData} />

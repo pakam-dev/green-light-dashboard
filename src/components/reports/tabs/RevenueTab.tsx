@@ -1,15 +1,16 @@
-import { useMemo } from "react";
 import { DollarSign, TrendingUp, Zap, BarChart2 } from "lucide-react";
 import { TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReportFilters } from "@/hooks/useReportFilters";
 import { RevenueAreaChart } from "@/components/reports/RevenueAreaChart";
 import { MoMRevenueChart } from "@/components/reports/MoMRevenueChart";
+import { RevenuePoint, MoMRevenuePoint } from "@/lib/reportsMockData";
 import {
-  generateRevenueSummary,
-  generateRevenueWeeklyTrend,
-  generateMoMRevenue,
-} from "@/lib/reportsMockData";
+  useGetRevenueSummaryQuery,
+  useGetRevenueWeeklyTrendQuery,
+  useGetMonthOnMonthQuery,
+  useGetReportSummaryQuery,
+} from "@/store/api/reportsApi";
 
 function formatNaira(v: number): string {
   if (v >= 1_000_000_000) return `₦${(v / 1_000_000_000).toFixed(2)}B`;
@@ -50,9 +51,37 @@ interface RevenueTabProps {
 }
 
 export const RevenueTab = ({ filters }: RevenueTabProps) => {
-  const summary    = useMemo(() => generateRevenueSummary(filters.from, filters.to),      [filters.from, filters.to]);
-  const weeklyData = useMemo(() => generateRevenueWeeklyTrend(filters.from, filters.to),  [filters.from, filters.to]);
-  const momData    = useMemo(() => generateMoMRevenue(filters.from, filters.to),           [filters.from, filters.to]);
+  const { data: revSummaryRes } = useGetRevenueSummaryQuery(filters);
+  const { data: weeklyRes     } = useGetRevenueWeeklyTrendQuery(filters);
+  const { data: momRes        } = useGetMonthOnMonthQuery(filters);
+  const { data: overviewRes   } = useGetReportSummaryQuery(filters);
+
+  const weeklyData: RevenuePoint[] = (weeklyRes?.data ?? []).map((r: any) => ({
+    week:    r.week,
+    revenue: (r.schedules ?? 0) + (r.loans ?? 0) + (r.instantBuy ?? 0),
+  }));
+
+  const momData: MoMRevenuePoint[] = (momRes?.data ?? []).map((r: any) => ({
+    month:    r.metric,
+    current:  r.current,
+    previous: r.previous,
+  }));
+
+  const totalRevenue = revSummaryRes?.totalRevenue ?? 0;
+  const growth       = revSummaryRes?.growth       ?? 0;
+  const totalPickups = overviewRes?.totalPickups    ?? 0;
+  const totalWaste   = overviewRes?.totalWaste      ?? 0;
+
+  const summary = {
+    totalRevenue,
+    totalRevenueDelta:  growth,
+    revenuePerPickup:   totalPickups > 0 ? Math.round(totalRevenue / totalPickups) : 0,
+    perPickupDelta:     0,
+    revenuePerKg:       totalWaste   > 0 ? Math.round(totalRevenue / totalWaste)   : 0,
+    perKgDelta:         0,
+    revenueGrowth:      growth,
+    growthDelta:        0,
+  };
 
   return (
     <div className="space-y-6">

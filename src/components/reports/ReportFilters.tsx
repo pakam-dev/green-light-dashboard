@@ -14,15 +14,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { ReportFilters as Filters, LOCATIONS, PRESET_RANGES } from "@/hooks/useReportFilters";
+import { ReportFilters as Filters, PRESET_RANGES } from "@/hooks/useReportFilters";
+import { useGetLocationsQuery } from "@/store/api/reportsApi";
 
 interface ReportFiltersProps {
   filters: Filters;
   onUpdate: (updates: Partial<Filters>) => void;
 }
 
+const ALL_LOCATIONS_OPTION = { value: "all", label: "All Locations" };
+
 export const ReportFiltersBar = ({ filters, onUpdate }: ReportFiltersProps) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const { data: locationsRes } = useGetLocationsQuery();
+  const locations = [
+    ALL_LOCATIONS_OPTION,
+    ...(locationsRes?.data ?? []),
+  ];
   const [range, setRange] = useState<DateRange | undefined>({
     from: filters.from,
     to: filters.to,
@@ -110,7 +118,7 @@ export const ReportFiltersBar = ({ filters, onUpdate }: ReportFiltersProps) => {
           <SelectValue placeholder="All Locations" />
         </SelectTrigger>
         <SelectContent>
-          {LOCATIONS.map((loc) => (
+          {locations.map((loc) => (
             <SelectItem key={loc.value} value={loc.value}>
               {loc.label}
             </SelectItem>

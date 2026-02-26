@@ -6,13 +6,14 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: 'https://beta.pakam.ng/collector/api', // Update this to your actual API base URL
+    baseUrl: 'https://api-revamp.pakam.ng/collector/api',
     prepareHeaders: (headers) => {
-      // Add auth token or other headers here if needed
       const token = localStorage.getItem('token');
       if (token) {
-        headers.set('authorization', `Bearer ${token}`);
+        console.log('token', token);
+        headers.set('Authorization', `Bearer ${token}`);
       }
+      console.log('no token');
       return headers;
     },
   }),
