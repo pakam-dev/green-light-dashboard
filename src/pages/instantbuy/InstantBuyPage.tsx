@@ -1,21 +1,24 @@
 import { useState, useMemo, Fragment, useEffect, useCallback } from "react";
 import {
   CreditCard, Wallet, ArrowDownCircle, ArrowUpCircle,
-  RefreshCw, TrendingUp, ShieldCheck, Users, FlaskConical,
-  ArrowUpRight, TrendingDown, Building, Smartphone,
+  RefreshCw, TrendingUp, ShieldCheck, Users,
+  ArrowUpRight, TrendingDown,
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Package, MapPin, Camera, X,
+  Package, MapPin, Camera, X, Trophy,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import { format, subMonths, subDays } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReusableDataTable, TableColumn } from "@/components/dashboard/ReusableDataTable";
 import { useDataTable } from "@/hooks/use-data-table";
 import {
   useGetInstantBuySummaryQuery,
+  useGetInstantBuyTransactionsQuery,
+  useGetInstantBuyMonthlyTrendQuery,
+  useGetInstantBuyDailyVolumeQuery,
+  useGetInstantBuyLocationStatsQuery,
   Transaction, TxType, TxStatus,
 } from "@/store/api/instantBuyApi";
 
@@ -37,34 +40,6 @@ function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" });
 }
 
-// ── Seeded random ─────────────────────────────────────────────────────────────
-
-function sr(seed: number) { return Math.abs(Math.sin(seed * 127.1 + 311.7) * 10000) % 1; }
-
-// ── Chart data ────────────────────────────────────────────────────────────────
-
-function genMonthly() {
-  return Array.from({ length: 12 }, (_, i) => {
-    const d = subMonths(new Date(), 11 - i);
-    const s = d.getMonth() + d.getFullYear() * 12;
-    const topups   = Math.round(4_500_000 + i * 420_000 + sr(s)   * 3_000_000);
-    const payments = Math.round(topups * (0.78 + sr(s + 1) * 0.14));
-    const reversals= Math.round(topups * (0.01 + sr(s + 2) * 0.02));
-    return { month: format(d, "MMM yy"), topups, payments, reversals };
-  });
-}
-
-function genDaily() {
-  return Array.from({ length: 30 }, (_, i) => {
-    const d = subDays(new Date(), 29 - i);
-    const s = d.getDate() + d.getMonth() * 31;
-    return {
-      day: format(d, "dd MMM"),
-      transactions: Math.round(120 + sr(s) * 180 + (i / 30) * 60),
-    };
-  });
-}
-
 const STATUS_DIST = [
   { name: "Successful", value: 94.2, color: "#16a34a" },
   { name: "Failed",     value: 3.1,  color: "#dc2626" },
@@ -72,107 +47,11 @@ const STATUS_DIST = [
   { name: "Reversed",   value: 0.9,  color: "#7c3aed" },
 ];
 
-// ── Seed transactions ─────────────────────────────────────────────────────────
-
-const SEED_TXN: Transaction[] = [
-  { id:"t01", reference:"IB-2025-001234", userName:"Adaeze Okafor",    userPhone:"08012345601", type:"topup",    amount:20000,  status:"successful", createdAt:"2025-02-11T09:30:00" },
-  { id:"t02", reference:"IB-2025-001235", userName:"Emeka Nwosu",      userPhone:"08023456702", type:"topup",    amount:50000,  status:"successful", createdAt:"2025-02-11T10:15:00" },
-  {
-    id:"t03", reference:"IB-2025-001236", userName:"Adaeze Okafor", userPhone:"08012345601",
-    type:"payment", amount:5000, status:"successful", createdAt:"2025-02-11T10:45:00",
-    materials:[{name:"PET Bottles",kg:25,pricePerKg:120},{name:"Cardboard",kg:20,pricePerKg:60}],
-    totalWeight:45, images:["p1","p2"],
-    address:"23 Bode Thomas Street, Surulere, Lagos",
-  },
-  { id:"t04", reference:"IB-2025-001237", userName:"Ngozi Eze",        userPhone:"08034567803", type:"topup",    amount:10000,  status:"successful", createdAt:"2025-02-11T11:00:00" },
-  { id:"t05", reference:"IB-2025-001238", userName:"Chidi Obi",        userPhone:"08045678904", type:"topup",    amount:100000, status:"successful", createdAt:"2025-02-11T11:20:00" },
-  {
-    id:"t06", reference:"IB-2025-001239", userName:"Amaka Chioma", userPhone:"08056789005",
-    type:"payment", amount:7500, status:"failed", createdAt:"2025-02-11T11:35:00",
-    materials:[{name:"Mixed Plastics",kg:45,pricePerKg:100},{name:"Nylon Bags",kg:30,pricePerKg:80}],
-    totalWeight:75, images:["p1","p2","p3"],
-    address:"14 Allen Avenue, Ikeja, Lagos",
-  },
-  { id:"t07", reference:"IB-2025-001240", userName:"Babatunde Adeola", userPhone:"08067890106", type:"topup",    amount:25000,  status:"successful", createdAt:"2025-02-10T08:10:00" },
-  {
-    id:"t08", reference:"IB-2025-001241", userName:"Kelechi Okonkwo", userPhone:"08078901207",
-    type:"payment", amount:3000, status:"successful", createdAt:"2025-02-10T09:00:00",
-    materials:[{name:"Newspaper / Paper",kg:50,pricePerKg:40},{name:"Cardboard",kg:12,pricePerKg:60}],
-    totalWeight:62, images:["p1"],
-    address:"8 Adeola Hopewell Street, Victoria Island, Lagos",
-  },
-  { id:"t09", reference:"IB-2025-001242", userName:"Seun Adeyemi",     userPhone:"08089012308", type:"topup",    amount:15000,  status:"successful", createdAt:"2025-02-10T09:45:00" },
-  {
-    id:"t10", reference:"IB-2025-001243", userName:"Emeka Nwosu", userPhone:"08023456702",
-    type:"payment", amount:12500, status:"successful", createdAt:"2025-02-10T10:30:00",
-    materials:[{name:"PET Bottles",kg:55,pricePerKg:120},{name:"Aluminum Cans",kg:8,pricePerKg:350},{name:"Cardboard",kg:40,pricePerKg:60}],
-    totalWeight:103, images:["p1","p2","p3","p4"],
-    address:"5 Admiralty Way, Lekki Phase 1, Lagos",
-  },
-  { id:"t11", reference:"IB-2025-001244", userName:"Ifunanya Mbeki",   userPhone:"08090123409", type:"topup",    amount:30000,  status:"successful", createdAt:"2025-02-10T11:00:00" },
-  {
-    id:"t12", reference:"IB-2025-001245", userName:"Rotimi Oladele", userPhone:"08001234510",
-    type:"payment", amount:9500, status:"pending", createdAt:"2025-02-10T11:30:00",
-    materials:[{name:"E-waste / Electronics",kg:6,pricePerKg:800},{name:"Copper Wire",kg:4,pricePerKg:700}],
-    totalWeight:10, images:["p1","p2"],
-    address:"31 Obafemi Awolowo Way, Ikeja GRA, Lagos",
-  },
-  { id:"t13", reference:"IB-2025-001246", userName:"Chiamaka Ike",     userPhone:"08012345611", type:"topup",    amount:8000,   status:"successful", createdAt:"2025-02-10T13:00:00" },
-  {
-    id:"t14", reference:"IB-2025-001247", userName:"Chiamaka Ike", userPhone:"08012345611",
-    type:"payment", amount:22000, status:"successful", createdAt:"2025-02-10T13:45:00",
-    materials:[{name:"PET Bottles",kg:80,pricePerKg:120},{name:"Aluminum",kg:15,pricePerKg:350},{name:"Mixed Plastics",kg:40,pricePerKg:100}],
-    totalWeight:135, images:["p1","p2","p3","p4","p5"],
-    address:"12 Eko Atlantic Boulevard, Lagos Island, Lagos",
-  },
-  {
-    id:"t15", reference:"IB-2025-001248", userName:"Chibueze Okafor", userPhone:"08023456812",
-    type:"payment", amount:18000, status:"successful", createdAt:"2025-02-10T14:20:00",
-    materials:[{name:"HDPE Plastics",kg:90,pricePerKg:130},{name:"Glass Bottles",kg:60,pricePerKg:50},{name:"Paper",kg:80,pricePerKg:40}],
-    totalWeight:230, images:["p1","p2","p3"],
-    address:"7 Akin Adesola Street, Victoria Island, Lagos",
-  },
-  { id:"t16", reference:"IB-2025-001249", userName:"Amaka Chioma",     userPhone:"08056789005", type:"reversal", amount:7500,   status:"reversed",   createdAt:"2025-02-10T15:00:00" },
-  { id:"t17", reference:"IB-2025-001250", userName:"Adaobi Nwachukwu", userPhone:"08034567913", type:"topup",    amount:40000,  status:"successful", createdAt:"2025-02-09T08:30:00" },
-  { id:"t18", reference:"IB-2025-001251", userName:"Tunde Fashola",    userPhone:"08045678114", type:"topup",    amount:100000, status:"successful", createdAt:"2025-02-09T09:15:00" },
-  {
-    id:"t19", reference:"IB-2025-001252", userName:"Tunde Fashola", userPhone:"08045678114",
-    type:"payment", amount:35000, status:"successful", createdAt:"2025-02-09T10:00:00",
-    materials:[{name:"Aluminum Cans",kg:30,pricePerKg:350},{name:"Copper",kg:8,pricePerKg:1200},{name:"PET Bottles",kg:100,pricePerKg:120}],
-    totalWeight:138, images:["p1","p2","p3","p4","p5","p6"],
-    address:"45 Broad Street, Lagos Island, Lagos",
-  },
-  {
-    id:"t20", reference:"IB-2025-001253", userName:"Obioma Nzeh", userPhone:"08056789215",
-    type:"payment", amount:6500, status:"successful", createdAt:"2025-02-09T10:45:00",
-    materials:[{name:"Tetra Pak",kg:35,pricePerKg:100},{name:"Nylon Bags",kg:40,pricePerKg:80}],
-    totalWeight:75, images:["p1","p2"],
-    address:"19 Commercial Avenue, Sabo, Yaba, Lagos",
-  },
-  { id:"t21", reference:"IB-2025-001254", userName:"Rotimi Oladele",   userPhone:"08001234510", type:"reversal", amount:9500,   status:"reversed",   createdAt:"2025-02-09T11:30:00" },
-  {
-    id:"t22", reference:"IB-2025-001255", userName:"Grace Nwosu", userPhone:"08090123619",
-    type:"payment", amount:11000, status:"successful", createdAt:"2025-02-09T13:00:00",
-    materials:[{name:"PET Bottles",kg:50,pricePerKg:120},{name:"Cardboard",kg:50,pricePerKg:60},{name:"Paper",kg:50,pricePerKg:40}],
-    totalWeight:150, images:["p1","p2","p3"],
-    address:"3 Moloney Street, Lagos Island, Lagos",
-  },
-  { id:"t23", reference:"IB-2025-001256", userName:"Femi Adeyinka",    userPhone:"08089012518", type:"topup",    amount:20000,  status:"successful", createdAt:"2025-02-09T14:00:00" },
-  {
-    id:"t24", reference:"IB-2025-001257", userName:"Sola Adeleke", userPhone:"08001234720",
-    type:"payment", amount:4000, status:"successful", createdAt:"2025-02-09T15:00:00",
-    materials:[{name:"Mixed Plastics",kg:30,pricePerKg:100},{name:"Nylon",kg:12,pricePerKg:80}],
-    totalWeight:42, images:["p1"],
-    address:"28 Randle Avenue, Surulere, Lagos",
-  },
-  { id:"t25", reference:"IB-2025-001258", userName:"Blessing Okeke",   userPhone:"08012345821", type:"topup",    amount:35000,  status:"successful", createdAt:"2025-02-08T09:00:00" },
-];
-
 // ── Badge helpers ─────────────────────────────────────────────────────────────
 
 const TX_TYPE_META: Record<TxType, { label: string; icon: React.ElementType; bg: string; text: string; border: string }> = {
   topup:    { label: "Top-up",   icon: ArrowDownCircle, bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200" },
-  payment:  { label: "Payment",  icon: ArrowUpCircle,   bg: "bg-blue-50",   text: "text-blue-700",   border: "border-blue-200"  },
+  payment:  { label: "Material Purchase",  icon: ArrowUpCircle,   bg: "bg-blue-50",   text: "text-blue-700",   border: "border-blue-200"  },
   reversal: { label: "Reversal", icon: RefreshCw,       bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200"},
 };
 
@@ -458,7 +337,7 @@ const PaymentsTable = ({ data }: { data: Transaction[] }) => {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                  No payments found
+                  No material purchases found
                 </td>
               </tr>
             ) : filtered.map(row => (
@@ -596,7 +475,7 @@ const PaymentsTable = ({ data }: { data: Transaction[] }) => {
 
       {filtered.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          {filtered.length} payment{filtered.length !== 1 ? "s" : ""}
+          {filtered.length} material purchase{filtered.length !== 1 ? "s" : ""}
         </p>
       )}
     </div>
@@ -684,47 +563,59 @@ const DonutTooltip = ({ active, payload }: any) => {
 
 const TABS: { value: TxType; label: string; icon: React.ElementType }[] = [
   { value: "topup",    label: "Top-ups",   icon: ArrowDownCircle },
-  { value: "payment",  label: "Payments",  icon: ArrowUpCircle   },
+  { value: "payment",  label: "Material Purchases",  icon: ArrowUpCircle   },
   { value: "reversal", label: "Reversals", icon: RefreshCw       },
 ];
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 const InstantBuyPage = () => {
+  const [period, setPeriod] = useState("12m");
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().split("T")[0];
+  });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
   const [activeTab, setActiveTab] = useState<TxType>("topup");
 
-  const { data: summaryRes, isLoading: summaryLoading } = useGetInstantBuySummaryQuery();
+  const { data: summaryRes, isLoading: summaryLoading }   = useGetInstantBuySummaryQuery();
+  const { data: monthlyTrendRes }                         = useGetInstantBuyMonthlyTrendQuery();
+  const { data: dailyVolumeRes }                          = useGetInstantBuyDailyVolumeQuery();
+  const { data: locationRes }                             = useGetInstantBuyLocationStatsQuery();
+  const { data: txnRes }                                  = useGetInstantBuyTransactionsQuery();
   const summary = summaryRes?.data;
 
-  const monthlyData = useMemo(() => genMonthly(), []);
-  const dailyData   = useMemo(() => genDaily(),   []);
+  const monthlyData       = monthlyTrendRes?.data   ?? [];
+  const dailyData         = dailyVolumeRes?.data    ?? [];
+  const purchaseLocations = locationRes?.data       ?? [];
+  const allTxns           = txnRes?.data?.data      ?? [];
 
-  // Derive summary totals from seed when API not connected
-  const totalFunded   = summary?.totalFunded   ?? monthlyData.reduce((s, d) => s + d.topups,   0);
-  const totalPayments = summary?.totalPayments ?? monthlyData.reduce((s, d) => s + d.payments, 0);
+  const totalFunded   = summary?.totalFunded          ?? 0;
+  const totalPayments = summary?.totalPayments        ?? 0;
   const netBalance    = totalFunded - totalPayments;
-  const activeWallets = summary?.activeWallets        ?? 2341;
-  const successRate   = summary?.successRate          ?? 94.2;
-  const avgTxValue    = summary?.avgTransactionValue  ?? 16500;
+  const activeWallets = summary?.activeWallets        ?? 0;
+  const successRate   = summary?.successRate          ?? 0;
+  const avgTxValue    = summary?.avgTransactionValue  ?? 0;
 
   const kpiCards: KpiCardProps[] = [
     {
       label: "Total Wallet Top-ups",
       value: naira(totalFunded),
-      sub: `${SEED_TXN.filter(t => t.type === "topup").length} top-up transactions`,
+      sub: `${allTxns.filter(t => t.type === "topup").length} top-up transactions`,
       trend: { value: "18.3%", up: true },
       icon: Wallet,
       iconBg: "bg-primary/10", iconColor: "text-primary",
-      highlight: true, isLoading: false,
+      highlight: true, isLoading: summaryLoading,
     },
     {
-      label: "Total Payments",
+      label: "Total Material Purchases",
       value: naira(totalPayments),
-      sub: `${SEED_TXN.filter(t => t.type === "payment").length} payment transactions`,
+      sub: `${allTxns.filter(t => t.type === "payment").length} material purchase transactions`,
       trend: { value: "15.1%", up: true },
       icon: ArrowUpCircle,
       iconBg: "bg-blue-50", iconColor: "text-blue-600",
-      isLoading: false,
+      isLoading: summaryLoading,
     },
     {
       label: "Net Wallet Balance",
@@ -732,7 +623,7 @@ const InstantBuyPage = () => {
       sub: "Funds remaining in wallets",
       icon: TrendingUp,
       iconBg: "bg-green-50", iconColor: "text-green-600",
-      isLoading: false,
+      isLoading: summaryLoading,
     },
     {
       label: "Active Wallets",
@@ -765,17 +656,33 @@ const InstantBuyPage = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground">InstantBuy</h1>
-            <p className="text-sm text-muted-foreground">Wallet funding and payment activity overview</p>
+            <p className="text-sm text-muted-foreground">Wallet funding and material purchase activity overview</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            Last 12 Months
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-200 px-3 py-1 text-xs font-medium text-green-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-            Live
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+          >
+            <option value="30d">Last 30 Days</option>
+            <option value="3m">Last 3 Months</option>
+            <option value="6m">Last 6 Months</option>
+            <option value="12m">Last 12 Months</option>
+          </select>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+          />
+          <span className="text-xs text-muted-foreground">to</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+          />
         </div>
       </div>
 
@@ -792,7 +699,7 @@ const InstantBuyPage = () => {
           <div className="mb-6">
             <h3 className="text-base font-semibold text-foreground">Monthly Wallet Activity</h3>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Top-ups funded vs payments made — last 12 months
+              Top-ups funded vs material purchases made
             </p>
           </div>
           <div className="h-72">
@@ -816,7 +723,7 @@ const InstantBuyPage = () => {
                   formatter={(v) => <span className="text-xs text-muted-foreground">{v}</span>} />
                 <Area type="monotone" dataKey="topups"   name="Top-ups"  stroke="#008300" strokeWidth={2.5}
                   fill="url(#topupGrad)" dot={false} activeDot={{ r: 4, fill: "#008300" }} />
-                <Area type="monotone" dataKey="payments" name="Payments" stroke="#2563eb" strokeWidth={2.5}
+                <Area type="monotone" dataKey="payments" name="Material Purchases" stroke="#2563eb" strokeWidth={2.5}
                   fill="url(#payGrad)"   dot={false} activeDot={{ r: 4, fill: "#2563eb" }} />
               </AreaChart>
             </ResponsiveContainer>
@@ -885,10 +792,10 @@ const InstantBuyPage = () => {
       {/* ── Avg transaction + channel split mini-stats ─────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Avg. Transaction",  value: naira(avgTxValue), icon: CreditCard,  bg: "bg-primary/10", color: "text-primary"    },
-          { label: "Bank Transfers",    value: "38%",              icon: Building,    bg: "bg-blue-50",    color: "text-blue-600"   },
-          { label: "Card Payments",     value: "34%",              icon: CreditCard,  bg: "bg-indigo-50",  color: "text-indigo-600" },
-          { label: "USSD Transactions", value: "28%",              icon: Smartphone,  bg: "bg-amber-50",   color: "text-amber-600"  },
+          { label: "Avg. Transaction", value: naira(avgTxValue),                                                                                          icon: CreditCard,      bg: "bg-primary/10",  color: "text-primary"    },
+          { label: "Top-ups %",        value: `${allTxns.length ? Math.round(allTxns.filter(t => t.type === "topup").length    / allTxns.length * 100) : 0}%`, icon: ArrowDownCircle, bg: "bg-green-50",    color: "text-green-600"  },
+          { label: "Material Purchase %", value: `${allTxns.length ? Math.round(allTxns.filter(t => t.type === "payment").length  / allTxns.length * 100) : 0}%`, icon: ArrowUpCircle,   bg: "bg-indigo-50",   color: "text-indigo-600" },
+          { label: "Total Users",      value: activeWallets.toLocaleString(),                                                                                     icon: Users,           bg: "bg-amber-50",    color: "text-amber-600"  },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-border p-4 shadow-sm flex items-center gap-3">
             <div className={`flex h-9 w-9 items-center justify-center rounded-xl shrink-0 ${s.bg}`}>
@@ -902,26 +809,81 @@ const InstantBuyPage = () => {
         ))}
       </div>
 
+      {/* ── Material purchase locations ─────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Material Purchases by Location</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">Top states ranked by number of material purchases</p>
+          </div>
+          {purchaseLocations.length > 0 && (
+            <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
+              <Trophy className="h-4 w-4 text-amber-500 shrink-0" />
+              <div>
+                <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Top Location</p>
+                <p className="text-sm font-bold text-amber-700">{purchaseLocations[0].state}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {purchaseLocations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+            <MapPin className="h-8 w-8 opacity-30" />
+            <p className="text-sm">No data available</p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {purchaseLocations.map((loc, i) => {
+                const barPct = (loc.count / (purchaseLocations[0]?.count ?? 1)) * 100;
+                const isTop  = i === 0;
+                return (
+                  <div key={loc.state} className="flex items-center gap-3">
+                    <span className={`w-5 text-xs font-bold shrink-0 text-right ${isTop ? "text-amber-500" : "text-muted-foreground"}`}>
+                      {i + 1}
+                    </span>
+                    <MapPin className={`h-3.5 w-3.5 shrink-0 ${isTop ? "text-amber-500" : "text-muted-foreground"}`} />
+                    <span className={`w-32 text-sm shrink-0 ${isTop ? "font-semibold text-foreground" : "text-foreground"}`}>
+                      {loc.state}
+                    </span>
+                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${barPct}%`, background: isTop ? "#d97706" : "#7c3aed" }}
+                      />
+                    </div>
+                    <span className="w-10 text-right text-sm font-semibold tabular-nums text-foreground shrink-0">
+                      {loc.count}
+                    </span>
+                    <span className="w-20 text-right text-xs text-muted-foreground tabular-nums shrink-0">
+                      {naira(loc.amount)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="text-xs text-muted-foreground mt-4 text-right">
+              Total: {purchaseLocations.reduce((s, l) => s + l.count, 0).toLocaleString()} purchases · {naira(purchaseLocations.reduce((s, l) => s + l.amount, 0))}
+            </p>
+          </>
+        )}
+      </div>
+
       {/* ── Transaction log ────────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
-        <div className="flex items-start justify-between mb-5">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">Transaction Log</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Complete record of wallet top-ups, payments and reversals
-            </p>
-          </div>
-          {/* Demo badge */}
-          <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5">
-            <FlaskConical className="h-3.5 w-3.5 text-amber-500" />
-            <span className="text-xs font-medium text-amber-700">Demo data</span>
-          </div>
+        <div className="mb-5">
+          <h2 className="text-base font-semibold text-foreground">Transaction Log</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Complete record of wallet top-ups, material purchases and reversals
+          </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TxType)}>
           <TabsList className="h-10 bg-muted/50 border border-border rounded-xl p-1 flex-wrap gap-1 mb-4">
             {TABS.map((tab) => {
-              const cnt = SEED_TXN.filter((t) => t.type === tab.value).length;
+              const cnt = allTxns.filter((t) => t.type === tab.value).length;
               return (
                 <TabsTrigger
                   key={tab.value}
@@ -940,9 +902,9 @@ const InstantBuyPage = () => {
           {TABS.map((tab) => (
             <TabsContent key={tab.value} value={tab.value} className="focus-visible:outline-none">
               {tab.value === "payment" ? (
-                <PaymentsTable data={SEED_TXN.filter(t => t.type === "payment")} />
+                <PaymentsTable data={allTxns.filter(t => t.type === "payment")} />
               ) : (
-                <TxTable data={SEED_TXN.filter(t => t.type === tab.value)} />
+                <TxTable data={allTxns.filter(t => t.type === tab.value)} />
               )}
             </TabsContent>
           ))}

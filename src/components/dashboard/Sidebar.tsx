@@ -7,6 +7,7 @@ import {
   BarChart2,
   Landmark,
   CreditCard,
+  Banknote,
   LogOut,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ const menuItems = [
   { id: "schedules",   label: "Schedules",  icon: Calendar   },
   { id: "loan",        label: "Loan",       icon: Landmark   },
   { id: "instantbuy",  label: "InstantBuy", icon: CreditCard },
+  { id: "financials",  label: "Financials", icon: Banknote  },
 ];
 
 export const Sidebar = ({ activeItem, onItemClick, isOpen = false, onClose, onLogout }: SidebarProps) => {

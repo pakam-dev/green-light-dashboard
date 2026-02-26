@@ -65,7 +65,7 @@ const statsRow2 = [
   },
 ];
 
-const exisiting_routes = ['schedules', 'loan', 'reports', 'instantbuy']
+const exisiting_routes = ['schedules', 'loan', 'reports', 'instantbuy', 'financials']
 
 const DashboardLayout = () => {
   const navigate = useNavigate();

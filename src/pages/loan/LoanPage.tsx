@@ -7,7 +7,8 @@ import {
   Banknote,
   Wallet,
   ArrowUpRight,
-  ShieldCheck,
+  MapPin,
+  Trophy,
 } from "lucide-react";
 import {
   AreaChart,
@@ -24,7 +25,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { format, subMonths } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ReusableDataTable, TableColumn } from "@/components/dashboard/ReusableDataTable";
@@ -32,6 +32,8 @@ import { useDataTable } from "@/hooks/use-data-table";
 import {
   useGetLoanSummaryQuery,
   useGetLoansByStatusQuery,
+  useGetLoanMonthlyTrendQuery,
+  useGetLoanLocationStatsQuery,
   Loan,
   LoanStatus,
 } from "@/store/api/loanApi";
@@ -50,28 +52,6 @@ function nairaFull(val: number) {
 function fmtDate(iso?: string) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
-}
-
-// ── Seeded mock monthly chart data ───────────────────────────────────────────
-
-function seededRand(seed: number) {
-  return Math.abs(Math.sin(seed * 127.1 + 311.7) * 10000) % 1;
-}
-
-function generateMonthlyData() {
-  return Array.from({ length: 12 }, (_, i) => {
-    const date = subMonths(new Date(), 11 - i);
-    const seed = date.getMonth() + date.getFullYear() * 12;
-    const base = 2_500_000 + i * 220_000;
-    const disbursed = Math.round(base + seededRand(seed) * 1_800_000);
-    const collected = Math.round(disbursed * (0.76 + seededRand(seed + 1) * 0.14));
-    return {
-      month: format(date, "MMM yy"),
-      disbursed,
-      collected,
-      loans: Math.round(40 + seededRand(seed + 2) * 80 + i * 3),
-    };
-  });
 }
 
 // ── Portfolio health donut ───────────────────────────────────────────────────
@@ -300,11 +280,22 @@ const KpiCard = ({ label, value, sub, trend, icon: Icon, iconBg, iconColor, high
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 const LoanPage = () => {
+  const [period, setPeriod] = useState("12m");
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().split("T")[0];
+  });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
   const [activeTab, setActiveTab] = useState<TabValue>("all");
   const { data: summaryRes, isLoading: summaryLoading } = useGetLoanSummaryQuery();
   const summary = summaryRes?.data;
 
-  const monthlyData = useMemo(() => generateMonthlyData(), []);
+  const { data: monthlyTrendRes } = useGetLoanMonthlyTrendQuery();
+  const { data: locationRes }     = useGetLoanLocationStatsQuery();
+
+  const monthlyData  = monthlyTrendRes?.data ?? [];
+  const locationData = locationRes?.data     ?? [];
 
   // Portfolio health donut data (from real summary)
   const donutData = useMemo(
@@ -339,15 +330,30 @@ const LoanPage = () => {
             <p className="text-sm text-muted-foreground">Platform-wide loan performance overview</p>
           </div>
         </div>
-        {/* Period badge */}
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            Last 12 Months
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Read-only
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+          >
+            <option value="30d">Last 30 Days</option>
+            <option value="3m">Last 3 Months</option>
+            <option value="6m">Last 6 Months</option>
+            <option value="12m">Last 12 Months</option>
+          </select>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+          />
+          <span className="text-xs text-muted-foreground">to</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+          />
         </div>
       </div>
 
@@ -414,7 +420,7 @@ const LoanPage = () => {
           <div className="mb-6">
             <h3 className="text-base font-semibold text-foreground">Monthly Portfolio Activity</h3>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Loan disbursements vs. repayments collected over the last 12 months
+              Loan disbursements vs. repayments collected
             </p>
           </div>
           <div className="h-72">
@@ -520,6 +526,75 @@ const LoanPage = () => {
             </BarChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* ── Location breakdown ──────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Loan Requests by Location</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">Top states ranked by number of loan requests</p>
+          </div>
+          {/* Top location badge — only shown when data is available */}
+          {locationData.length > 0 && (
+            <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
+              <Trophy className="h-4 w-4 text-amber-500 shrink-0" />
+              <div>
+                <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Top Location</p>
+                <p className="text-sm font-bold text-amber-700">{locationData[0].state}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {locationData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+            <MapPin className="h-8 w-8 opacity-30" />
+            <p className="text-sm">No data available</p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {locationData.map((loc, i) => {
+                const barPct = (loc.count / (locationData[0]?.count ?? 1)) * 100;
+                const isTop  = i === 0;
+                return (
+                  <div key={loc.state} className="flex items-center gap-3">
+                    {/* Rank */}
+                    <span className={`w-5 text-xs font-bold shrink-0 text-right ${isTop ? "text-amber-500" : "text-muted-foreground"}`}>
+                      {i + 1}
+                    </span>
+                    {/* Icon */}
+                    <MapPin className={`h-3.5 w-3.5 shrink-0 ${isTop ? "text-amber-500" : "text-muted-foreground"}`} />
+                    {/* State name */}
+                    <span className={`w-32 text-sm shrink-0 ${isTop ? "font-semibold text-foreground" : "text-foreground"}`}>
+                      {loc.state}
+                    </span>
+                    {/* Bar */}
+                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${barPct}%`, background: isTop ? "#d97706" : "#008300" }}
+                      />
+                    </div>
+                    {/* Count */}
+                    <span className="w-10 text-right text-sm font-semibold tabular-nums text-foreground shrink-0">
+                      {loc.count}
+                    </span>
+                    {/* Amount */}
+                    <span className="w-20 text-right text-xs text-muted-foreground tabular-nums shrink-0">
+                      {naira(loc.amount)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="text-xs text-muted-foreground mt-4 text-right">
+              Total: {locationData.reduce((s, l) => s + l.count, 0).toLocaleString()} requests · {naira(locationData.reduce((s, l) => s + l.amount, 0))}
+            </p>
+          </>
+        )}
       </div>
 
       {/* ── Loan records table ───────────────────────────────────────────────── */}

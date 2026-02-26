@@ -37,4 +37,5 @@ export * from "./api/dashboardApi";
 export * from "./api/reportsApi";
 export * from "./api/loanApi";
 export * from "./api/instantBuyApi";
+export * from "./api/financialsApi";
 export * from "./slices/uiSlice";

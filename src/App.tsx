@@ -11,6 +11,7 @@ import ReportsPage from "./pages/reports/ReportsPage";
 import PublicReportPage from "./pages/reports/PublicReportPage";
 import LoanPage from "./pages/loan/LoanPage";
 import InstantBuyPage from "./pages/instantbuy/InstantBuyPage";
+import FinancialsPage from "./pages/financials/FinancialsPage";
 import SignIn from "./pages/auth/SignIn";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="schedules" element={<SchedulePage />} />
             <Route path="loan" element={<LoanPage />} />
             <Route path="instantbuy" element={<InstantBuyPage />} />
+            <Route path="financials" element={<FinancialsPage />} />
             <Route path="reports" element={<ReportsPage />} />
           </Route>
 
