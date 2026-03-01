@@ -9,7 +9,30 @@ import {
   ArrowUpRight,
   MapPin,
   Trophy,
+  Plus,
+  Pencil,
+  Package,
+  Trash2,
+  Building2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   AreaChart,
   Area,
@@ -34,9 +57,27 @@ import {
   useGetLoansByStatusQuery,
   useGetLoanMonthlyTrendQuery,
   useGetLoanLocationStatsQuery,
+  useGetLoanProductsQuery,
+  useCreateLoanProductMutation,
+  useUpdateLoanProductMutation,
+  useDeleteLoanProductMutation,
+  useGetLoanProvidersQuery,
+  useCreateLoanProviderMutation,
+  useUpdateLoanProviderMutation,
+  useDeleteLoanProviderMutation,
   Loan,
   LoanStatus,
+  LoanProduct,
+  LoanProvider,
 } from "@/store/api/loanApi";
+import {
+  MOCK_LOAN_SUMMARY,
+  MOCK_LOAN_MONTHLY,
+  MOCK_LOAN_LOCATION,
+  MOCK_LOAN_PRODUCTS,
+  MOCK_LOAN_PROVIDERS,
+  MOCK_LOANS,
+} from "@/mock/mockData";
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -135,6 +176,20 @@ const columns: TableColumn<Loan>[] = [
     ),
   },
   {
+    key: "provider",
+    header: "Provider",
+    render: (row) => (
+      <span className="text-sm text-muted-foreground">{row.provider ?? "—"}</span>
+    ),
+  },
+  {
+    key: "loanProduct",
+    header: "Loan Product",
+    render: (row) => row.loanProduct
+      ? <Badge variant="outline" className="text-xs capitalize">{row.loanProduct}</Badge>
+      : <span className="text-sm text-muted-foreground">—</span>,
+  },
+  {
     key: "amount",
     header: "Loan Amount",
     render: (row) => <span className="font-semibold tabular-nums">{nairaFull(row.amount)}</span>,
@@ -179,7 +234,13 @@ const columns: TableColumn<Loan>[] = [
 
 interface FlatLoan extends Loan { borrowerName: string; borrowerPhone: string; }
 function flattenLoans(loans: Loan[]): FlatLoan[] {
-  return loans.map((l) => ({ ...l, borrowerName: l.borrower?.name ?? "", borrowerPhone: l.borrower?.phone ?? "" }));
+  return loans.map((l) => ({
+    ...l,
+    borrowerName: l.borrower?.name ?? "",
+    borrowerPhone: l.borrower?.phone ?? "",
+    provider: l.provider,
+    loanProduct: l.loanProduct,
+  }));
 }
 
 // ── Loan table ────────────────────────────────────────────────────────────────
@@ -223,7 +284,11 @@ const TABS: { value: TabValue; label: string; emptyMessage: string }[] = [
 
 const TabContent = ({ status, emptyMessage }: { status: TabValue; emptyMessage: string }) => {
   const { data, isLoading } = useGetLoansByStatusQuery(status);
-  return <LoanTable loans={data?.data?.data ?? []} isLoading={isLoading} emptyMessage={emptyMessage} />;
+  const apiLoans = data?.data?.data ?? [];
+  const loans = apiLoans.length > 0
+    ? apiLoans
+    : (MOCK_LOANS as Loan[]).filter((l) => status === "all" || l.status === status);
+  return <LoanTable loans={loans} isLoading={isLoading} emptyMessage={emptyMessage} />;
 };
 
 // ── KPI Hero Card ─────────────────────────────────────────────────────────────
@@ -279,6 +344,9 @@ const KpiCard = ({ label, value, sub, trend, icon: Icon, iconBg, iconColor, high
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+const EMPTY_FORM = { name: "", provider: "", interestRate: "", minAmount: "", maxAmount: "", tenure: "", description: "" };
+const EMPTY_PROVIDER_FORM = { name: "", description: "", contactEmail: "", contactPhone: "" };
+
 const LoanPage = () => {
   const [period, setPeriod] = useState("12m");
   const [dateFrom, setDateFrom] = useState(() => {
@@ -288,14 +356,150 @@ const LoanPage = () => {
   });
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
   const [activeTab, setActiveTab] = useState<TabValue>("all");
+
+  // ── Shared delete confirm state ──────────────────────────────────────────
+  const [deleteTarget, setDeleteTarget] = useState<{ kind: "provider" | "product"; id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // ── Loan Providers state ─────────────────────────────────────────────────
+  const [providerDialogOpen, setProviderDialogOpen] = useState(false);
+  const [editingProvider, setEditingProvider]       = useState<LoanProvider | null>(null);
+  const [providerForm, setProviderForm]             = useState(EMPTY_PROVIDER_FORM);
+  const [providerSaving, setProviderSaving]         = useState(false);
+
+  const { data: providersRes, isLoading: providersLoading } = useGetLoanProvidersQuery();
+  const [createLoanProvider] = useCreateLoanProviderMutation();
+  const [updateLoanProvider] = useUpdateLoanProviderMutation();
+  const [deleteLoanProvider] = useDeleteLoanProviderMutation();
+
+  const providers = (providersRes?.data?.length ? providersRes.data : MOCK_LOAN_PROVIDERS) as LoanProvider[];
+
+  function openProviderDialog(provider: LoanProvider | null) {
+    setEditingProvider(provider);
+    setProviderForm(
+      provider
+        ? {
+            name:         provider.name,
+            description:  provider.description ?? "",
+            contactEmail: provider.contactEmail ?? "",
+            contactPhone: provider.contactPhone ?? "",
+          }
+        : EMPTY_PROVIDER_FORM,
+    );
+    setProviderDialogOpen(true);
+  }
+
+  async function handleProviderSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setProviderSaving(true);
+    const payload = {
+      name:         providerForm.name.trim(),
+      description:  providerForm.description.trim() || undefined,
+      contactEmail: providerForm.contactEmail.trim() || undefined,
+      contactPhone: providerForm.contactPhone.trim() || undefined,
+      isActive:     editingProvider ? editingProvider.isActive : true,
+    };
+    try {
+      if (editingProvider) {
+        await updateLoanProvider({ id: editingProvider.id, data: payload }).unwrap();
+      } else {
+        await createLoanProvider(payload).unwrap();
+      }
+      setProviderDialogOpen(false);
+    } finally {
+      setProviderSaving(false);
+    }
+  }
+
+  // ── Loan Products state ──────────────────────────────────────────────────
+  const [dialogOpen, setDialogOpen]         = useState(false);
+  const [editingProduct, setEditingProduct] = useState<LoanProduct | null>(null);
+  const [form, setForm]                     = useState(EMPTY_FORM);
+  const [saving, setSaving]                 = useState(false);
+  const [productToggling, setProductToggling] = useState<string | null>(null);
+
+  const { data: productsRes, isLoading: productsLoading } = useGetLoanProductsQuery();
+  const [createLoanProduct] = useCreateLoanProductMutation();
+  const [updateLoanProduct] = useUpdateLoanProductMutation();
+  const [deleteLoanProduct] = useDeleteLoanProductMutation();
+
+  const products = (productsRes?.data?.length ? productsRes.data : MOCK_LOAN_PRODUCTS) as LoanProduct[];
+
+  function openDialog(product: LoanProduct | null) {
+    setEditingProduct(product);
+    setForm(
+      product
+        ? {
+            name:         product.name,
+            provider:     product.provider,
+            interestRate: String(product.interestRate),
+            minAmount:    String(product.minAmount),
+            maxAmount:    String(product.maxAmount),
+            tenure:       product.tenure,
+            description:  product.description ?? "",
+          }
+        : EMPTY_FORM,
+    );
+    setDialogOpen(true);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    const payload = {
+      name:         form.name.trim(),
+      provider:     form.provider.trim(),
+      interestRate: parseFloat(form.interestRate) || 0,
+      minAmount:    parseInt(form.minAmount, 10) || 0,
+      maxAmount:    parseInt(form.maxAmount, 10) || 0,
+      tenure:       form.tenure.trim(),
+      description:  form.description.trim() || undefined,
+    };
+    try {
+      if (editingProduct) {
+        await updateLoanProduct({ id: editingProduct.id, data: payload }).unwrap();
+      } else {
+        await createLoanProduct(payload).unwrap();
+      }
+      setDialogOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggleProduct(product: LoanProduct) {
+    setProductToggling(product.id);
+    try {
+      await updateLoanProduct({ id: product.id, data: { isActive: !product.isActive } }).unwrap();
+    } finally {
+      setProductToggling(null);
+    }
+  }
+
+  // ── Shared delete handler ────────────────────────────────────────────────
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      if (deleteTarget.kind === "provider") {
+        await deleteLoanProvider(deleteTarget.id).unwrap();
+      } else {
+        await deleteLoanProduct(deleteTarget.id).unwrap();
+      }
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const { data: summaryRes, isLoading: summaryLoading } = useGetLoanSummaryQuery();
-  const summary = summaryRes?.data;
+  const summary = summaryRes?.data ?? MOCK_LOAN_SUMMARY;
 
   const { data: monthlyTrendRes } = useGetLoanMonthlyTrendQuery();
   const { data: locationRes }     = useGetLoanLocationStatsQuery();
 
-  const monthlyData  = monthlyTrendRes?.data ?? [];
-  const locationData = locationRes?.data     ?? [];
+  const monthlyData  = monthlyTrendRes?.data?.length  ? monthlyTrendRes.data  : MOCK_LOAN_MONTHLY;
+  const locationData = locationRes?.data?.length      ? locationRes.data      : MOCK_LOAN_LOCATION;
 
   // Portfolio health donut data (from real summary)
   const donutData = useMemo(
@@ -596,6 +800,404 @@ const LoanPage = () => {
           </>
         )}
       </div>
+
+      {/* ── Loan Providers ───────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Loan Providers</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">Manage lending institutions available on the platform</p>
+          </div>
+          <button
+            onClick={() => openProviderDialog(null)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New Provider
+          </button>
+        </div>
+
+        {providersLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-12 bg-muted/50 animate-pulse rounded-lg" />
+            ))}
+          </div>
+        ) : providers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+            <Building2 className="h-8 w-8 opacity-30" />
+            <p className="text-sm">No loan providers yet</p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/40 border-b border-border">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden md:table-cell">Description</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Contact</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {providers.map((provider) => (
+                  <tr key={provider.id} className={`hover:bg-muted/30 transition-colors ${!provider.isActive ? "opacity-60" : ""}`}>
+                    <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">{provider.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell max-w-[200px] truncate">
+                      {provider.description ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
+                      <div className="text-xs space-y-0.5">
+                        {provider.contactEmail && <p>{provider.contactEmail}</p>}
+                        {provider.contactPhone && <p>{provider.contactPhone}</p>}
+                        {!provider.contactEmail && !provider.contactPhone && "—"}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                        provider.isActive
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : "bg-gray-100 text-gray-500 border-gray-200"
+                      }`}>
+                        {provider.isActive ? "Active" : "Disabled"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <Switch
+                          checked={provider.isActive}
+                          onCheckedChange={() =>
+                            updateLoanProvider({ id: provider.id, data: { isActive: !provider.isActive } })
+                          }
+                        />
+                        <button
+                          onClick={() => openProviderDialog(provider)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                        >
+                          <Pencil className="h-3 w-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget({ kind: "provider", id: provider.id, name: provider.name })}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Loan Products ────────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Loan Products</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">Configure available loan products and their terms</p>
+          </div>
+          <button
+            onClick={() => openDialog(null)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New Product
+          </button>
+        </div>
+
+        {productsLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-12 bg-muted/50 animate-pulse rounded-lg" />
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+            <Package className="h-8 w-8 opacity-30" />
+            <p className="text-sm">No loan products yet</p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/40 border-b border-border">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Provider</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden md:table-cell">Interest Rate</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Min Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Max Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden md:table-cell">Tenure</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {products.map((product) => (
+                  <tr key={product.id} className={`hover:bg-muted/30 transition-colors ${product.isActive === false ? "opacity-60" : ""}`}>
+                    <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">{product.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell whitespace-nowrap">{product.provider}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell tabular-nums">{product.interestRate}% p.a.</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell tabular-nums">{naira(product.minAmount)}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell tabular-nums">{naira(product.maxAmount)}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{product.tenure}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                        product.isActive === false
+                          ? "bg-gray-100 text-gray-500 border-gray-200"
+                          : "bg-green-50 text-green-700 border-green-200"
+                      }`}>
+                        {product.isActive === false ? "Disabled" : "Active"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <Switch
+                          checked={product.isActive !== false}
+                          disabled={productToggling === product.id}
+                          onCheckedChange={() => handleToggleProduct(product)}
+                        />
+                        <button
+                          onClick={() => openDialog(product)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                        >
+                          <Pencil className="h-3 w-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget({ kind: "product", id: product.id, name: product.name })}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Loan Provider Dialog ─────────────────────────────────────────────── */}
+      <Dialog open={providerDialogOpen} onOpenChange={setProviderDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingProvider ? "Edit Loan Provider" : "New Loan Provider"}</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleProviderSubmit} className="space-y-4 mt-2">
+            {/* Name */}
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Provider Name <span className="text-red-500">*</span></label>
+              <input
+                required
+                value={providerForm.name}
+                onChange={(e) => setProviderForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="e.g. First Bank Nigeria"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Description <span className="text-muted-foreground/60">(optional)</span></label>
+              <textarea
+                rows={3}
+                value={providerForm.description}
+                onChange={(e) => setProviderForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Brief description of this provider…"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+              />
+            </div>
+
+            {/* Contact Email + Phone (2 cols) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Contact Email</label>
+                <input
+                  type="email"
+                  value={providerForm.contactEmail}
+                  onChange={(e) => setProviderForm((f) => ({ ...f, contactEmail: e.target.value }))}
+                  placeholder="contact@bank.com"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Contact Phone</label>
+                <input
+                  type="tel"
+                  value={providerForm.contactPhone}
+                  onChange={(e) => setProviderForm((f) => ({ ...f, contactPhone: e.target.value }))}
+                  placeholder="e.g. 08012345678"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <button
+                type="button"
+                onClick={() => setProviderDialogOpen(false)}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={providerSaving}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors disabled:opacity-60"
+              >
+                {providerSaving ? "Saving…" : editingProvider ? "Save Changes" : "Create Provider"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Loan Product Dialog ──────────────────────────────────────────────── */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingProduct ? "Edit Loan Product" : "New Loan Product"}</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            {/* Name */}
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Product Name <span className="text-red-500">*</span></label>
+              <input
+                required
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="e.g. Business Loan"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+
+            {/* Provider */}
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Provider <span className="text-red-500">*</span></label>
+              <select
+                required
+                value={form.provider}
+                onChange={(e) => setForm((f) => ({ ...f, provider: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+              >
+                <option value="">Select a provider…</option>
+                {providers.filter((p) => p.isActive).map((p) => (
+                  <option key={p.id} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Interest Rate + Tenure (2 cols) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Interest Rate (% p.a.)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={form.interestRate}
+                  onChange={(e) => setForm((f) => ({ ...f, interestRate: e.target.value }))}
+                  placeholder="e.g. 12.5"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Tenure</label>
+                <input
+                  value={form.tenure}
+                  onChange={(e) => setForm((f) => ({ ...f, tenure: e.target.value }))}
+                  placeholder="e.g. 12 months"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+
+            {/* Min + Max Amount (2 cols) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Min Amount (₦)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.minAmount}
+                  onChange={(e) => setForm((f) => ({ ...f, minAmount: e.target.value }))}
+                  placeholder="e.g. 50000"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Max Amount (₦)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.maxAmount}
+                  onChange={(e) => setForm((f) => ({ ...f, maxAmount: e.target.value }))}
+                  placeholder="e.g. 5000000"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Description <span className="text-muted-foreground/60">(optional)</span></label>
+              <textarea
+                rows={3}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Brief description of this loan product…"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+              />
+            </div>
+
+            <DialogFooter>
+              <button
+                type="button"
+                onClick={() => setDialogOpen(false)}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors disabled:opacity-60"
+              >
+                {saving ? "Saving…" : editingProduct ? "Save Changes" : "Create Product"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Shared delete AlertDialog ────────────────────────────────────────── */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this {deleteTarget?.kind}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Loan records table ───────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-border shadow-sm p-6">

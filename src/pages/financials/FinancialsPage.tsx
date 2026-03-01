@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useGetFinancialsSummaryQuery } from "@/store/api/financialsApi";
+import { MOCK_FINANCIALS } from "@/mock/mockData";
 
 // ── Palette ───────────────────────────────────────────────────────────────
 const COLOR_SCHEDULES  = "#008300";
@@ -159,7 +160,8 @@ export default function FinancialsPage() {
 
   const { data: summaryRes } = useGetFinancialsSummaryQuery();
 
-  const monthly = summaryRes?.data?.monthly ?? [];
+  const financialData = summaryRes?.data ?? MOCK_FINANCIALS;
+  const monthly = financialData.monthly ?? [];
 
   const totRev    = useMemo(() => monthly.reduce((s, m) => s + m.totalRevenue, 0), [monthly]);
   const totProfit = useMemo(() => monthly.reduce((s, m) => s + m.netProfit, 0), [monthly]);
@@ -369,7 +371,7 @@ export default function FinancialsPage() {
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Segment Performance</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {(() => {
-            const seg = summaryRes?.data?.segments;
+            const seg = financialData.segments;
             const s   = seg?.schedules;
             const l   = seg?.loans;
             const ib  = seg?.instantBuy;

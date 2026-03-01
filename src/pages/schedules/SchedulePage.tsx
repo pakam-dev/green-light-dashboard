@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import {
   Calendar,
   Truck,
@@ -31,6 +31,16 @@ import {
   wasteCategory,
 } from "@/store/api/pickupsApi";
 import { ScheduleMapView } from "@/components/schedules/ScheduleMapView";
+import {
+  MOCK_PICKUP_LOCATIONS,
+  MOCK_DROPOFF_LOCATIONS,
+  MOCK_PICKUP_PENDING,
+  MOCK_PICKUP_COMPLETED,
+  MOCK_PICKUP_CANCELLED,
+  MOCK_DROPOFF_PENDING,
+  MOCK_DROPOFF_COMPLETED,
+  MOCK_DROPOFF_CANCELLED,
+} from "@/mock/mockData";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -120,10 +130,9 @@ const ScheduleTable = ({
                 {paginated.map((row) => {
                   const isOpen = expandedId === row.id;
                   return (
-                    <>
+                    <Fragment key={row.id}>
                       {/* Main row */}
                       <tr
-                        key={row.id}
                         className={`transition-colors ${isOpen ? "bg-primary/5" : "hover:bg-muted/30"}`}
                       >
                         <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
@@ -167,7 +176,7 @@ const ScheduleTable = ({
 
                       {/* Expanded detail row */}
                       {isOpen && (
-                        <tr key={`${row.id}-detail`} className="bg-primary/5">
+                        <tr className="bg-primary/5">
                           <td colSpan={7} className="px-5 pb-5 pt-3">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
@@ -280,7 +289,7 @@ const ScheduleTable = ({
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
@@ -462,10 +471,18 @@ const ScheduleTypeView = ({ scheduleType }: { scheduleType: ScheduleType }) => {
   const { data: completedRes, isLoading: completedLoading } = useGetSchedulesByTypeAndStatusQuery({ scheduleType, status: "completed" });
   const { data: cancelledRes, isLoading: cancelledLoading } = useGetSchedulesByTypeAndStatusQuery({ scheduleType, status: "cancelled" });
 
+  const mockPending   = scheduleType === "pickup" ? MOCK_PICKUP_PENDING   : MOCK_DROPOFF_PENDING;
+  const mockCompleted = scheduleType === "pickup" ? MOCK_PICKUP_COMPLETED : MOCK_DROPOFF_COMPLETED;
+  const mockCancelled = scheduleType === "pickup" ? MOCK_PICKUP_CANCELLED : MOCK_DROPOFF_CANCELLED;
+
+  const pendingRows   = (pendingRes?.data?.data?.length   ? pendingRes.data.data   : mockPending)   as Pickup[];
+  const completedRows = (completedRes?.data?.data?.length ? completedRes.data.data : mockCompleted) as Pickup[];
+  const cancelledRows = (cancelledRes?.data?.data?.length ? cancelledRes.data.data : mockCancelled) as Pickup[];
+
   const dataMap: Record<ScheduleStatus, { rows: Pickup[]; total: number; isLoading: boolean }> = {
-    pending:   { rows: pendingRes?.data?.data   ?? [], total: pendingRes?.data?.total   ?? 0, isLoading: pendingLoading   },
-    completed: { rows: completedRes?.data?.data ?? [], total: completedRes?.data?.total ?? 0, isLoading: completedLoading },
-    cancelled: { rows: cancelledRes?.data?.data ?? [], total: cancelledRes?.data?.total ?? 0, isLoading: cancelledLoading },
+    pending:   { rows: pendingRows,   total: pendingRes?.data?.total   ?? pendingRows.length,   isLoading: pendingLoading   },
+    completed: { rows: completedRows, total: completedRes?.data?.total ?? completedRows.length, isLoading: completedLoading },
+    cancelled: { rows: cancelledRows, total: cancelledRes?.data?.total ?? cancelledRows.length, isLoading: cancelledLoading },
   };
 
   const noun = scheduleType === "pickup" ? "Pickup" : "Dropoff";
@@ -543,8 +560,8 @@ const SchedulePage = () => {
   const { data: pickupLocRes  } = useGetScheduleLocationStatsQuery({ type: "pickup"  });
   const { data: dropoffLocRes } = useGetScheduleLocationStatsQuery({ type: "dropoff" });
 
-  const pickupLocations  = pickupLocRes?.data  ?? [];
-  const dropoffLocations = dropoffLocRes?.data ?? [];
+  const pickupLocations  = pickupLocRes?.data?.length  ? pickupLocRes.data  : MOCK_PICKUP_LOCATIONS;
+  const dropoffLocations = dropoffLocRes?.data?.length ? dropoffLocRes.data : MOCK_DROPOFF_LOCATIONS;
 
   return (
     <div className="space-y-6 pb-10">

@@ -27,6 +27,7 @@ const ALL_LOCATIONS_OPTION = { value: "all", label: "All Locations" };
 export const ReportFiltersBar = ({ filters, onUpdate }: ReportFiltersProps) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const { data: locationsRes } = useGetLocationsQuery();
+  console.log('data', locationsRes)
   const locations = [
     ALL_LOCATIONS_OPTION,
     ...(locationsRes?.data ?? []),

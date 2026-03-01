@@ -40,7 +40,60 @@ import { baseApi } from "./baseApi";
  *
  * Loan object shape:
  * { id, borrower: { id, name, email, phone }, amount, amountRepaid, balance,
- *   status, purpose?, disbursedAt?, dueDate?, createdAt }
+ *   status, purpose?, disbursedAt?, dueDate?, createdAt,
+ *   provider?: string, loanProduct?: string }
+ *
+ * ── Endpoint 5 ───────────────────────────────────────────────────────
+ * GET /v2/loan-products
+ *   Response: { data: LoanProduct[] }
+ *   — returns all configured loan products, newest-first
+ *   — used by: Loan page — Loan Products section
+ *
+ * ── Endpoint 6 ───────────────────────────────────────────────────────
+ * POST /v2/loan-products
+ *   Body: { name, provider, interestRate, minAmount, maxAmount, tenure, description? }
+ *   Response: { data: LoanProduct }  — the newly created product
+ *   — name and provider are required; interestRate is a float (e.g. 12.5 for 12.5%)
+ *   — minAmount / maxAmount in Naira (integer); tenure is a free-text string e.g. "12 months"
+ *
+ * ── Endpoint 7 ───────────────────────────────────────────────────────
+ * PATCH /v2/loan-products/:id
+ *   Body: Partial<{ name, provider, interestRate, minAmount, maxAmount, tenure, description, isActive }>
+ *   Response: { data: LoanProduct }  — the updated product
+ *
+ * ── Endpoint 8 ───────────────────────────────────────────────────────
+ * DELETE /v2/loan-products/:id
+ *   Response: { message: "Deleted" }  — 204 or 200 with message
+ *   — permanently deletes the loan product
+ *
+ * LoanProduct object shape:
+ * { id, name, provider, interestRate, minAmount, maxAmount, tenure, description?, isActive, createdAt }
+ *
+ * ── Endpoint 9 ────────────────────────────────────────────────────────
+ * GET /v2/loan-providers
+ *   Response: { data: LoanProvider[] }
+ *   — returns all loan providers, newest-first
+ *   — used by: Loan page — Loan Providers section
+ *
+ * ── Endpoint 10 ───────────────────────────────────────────────────────
+ * POST /v2/loan-providers
+ *   Body: { name, description?, contactEmail?, contactPhone?, isActive }
+ *   Response: { data: LoanProvider }  — the newly created provider
+ *   — name is required; isActive defaults to true
+ *
+ * ── Endpoint 11 ───────────────────────────────────────────────────────
+ * PATCH /v2/loan-providers/:id
+ *   Body: Partial<{ name, description, contactEmail, contactPhone, isActive }>
+ *   Response: { data: LoanProvider }  — the updated provider
+ *   — also used to toggle isActive (enable/disable)
+ *
+ * ── Endpoint 12 ───────────────────────────────────────────────────────
+ * DELETE /v2/loan-providers/:id
+ *   Response: { message: "Deleted" }  — 204 or 200 with message
+ *   — permanently deletes the loan provider
+ *
+ * LoanProvider object shape:
+ * { id, name, description?, contactEmail?, contactPhone?, isActive, createdAt }
  * ════════════════════════════════════════════════════════════════════
  */
 
@@ -101,6 +154,8 @@ export interface Loan {
   disbursedAt?: string;
   dueDate?: string;
   createdAt: string;
+  provider?: string;
+  loanProduct?: string;
 }
 
 /**
@@ -231,6 +286,68 @@ export interface LoanLocationStatsResponse {
   data: LoanLocationStat[];
 }
 
+/**
+ * A configured loan product available on the platform.
+ *
+ * Backend MUST return each item in this shape:
+ * {
+ *   id:            string,   // unique product ID
+ *   name:          string,   // product name e.g. "Business Loan"
+ *   provider:      string,   // lending institution / provider name
+ *   interestRate:  number,   // annual interest rate as a float e.g. 12.5
+ *   minAmount:     number,   // minimum loan amount in Naira
+ *   maxAmount:     number,   // maximum loan amount in Naira
+ *   tenure:        string,   // repayment period e.g. "12 months"
+ *   description?:  string,   // optional product description
+ *   isActive?:     boolean,  // whether product is currently enabled
+ *   createdAt:     string,   // ISO 8601 creation timestamp
+ * }
+ */
+export interface LoanProduct {
+  id: string;
+  name: string;
+  provider: string;
+  interestRate: number;
+  minAmount: number;
+  maxAmount: number;
+  tenure: string;
+  description?: string;
+  isActive?: boolean;
+  createdAt: string;
+}
+
+export interface LoanProductsResponse {
+  data: LoanProduct[];
+}
+
+/**
+ * A loan provider (lending institution) registered on the platform.
+ *
+ * Backend MUST return each item in this shape:
+ * {
+ *   id:             string,   // unique provider ID
+ *   name:           string,   // provider / institution name
+ *   description?:   string,   // optional description
+ *   contactEmail?:  string,   // contact email
+ *   contactPhone?:  string,   // contact phone number
+ *   isActive:       boolean,  // whether provider is currently enabled
+ *   createdAt:      string,   // ISO 8601 creation timestamp
+ * }
+ */
+export interface LoanProvider {
+  id: string;
+  name: string;
+  description?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface LoanProvidersResponse {
+  data: LoanProvider[];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ENDPOINTS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -347,6 +464,114 @@ export const loanApi = baseApi.injectEndpoints({
       query: () => ({ url: "/v2/loans/location-stats" }),
       providesTags: [{ type: "Dashboard", id: "LOAN_LOCATION_STATS" }],
     }),
+
+    /**
+     * GET /v2/loan-products
+     *
+     * Returns all configured loan products, newest-first.
+     * Used by: Loan page — Loan Products section (list, create, edit, delete, toggle).
+     */
+    getLoanProducts: builder.query<LoanProductsResponse, void>({
+      query: () => ({ url: "/v2/loan-products" }),
+      providesTags: [{ type: "Dashboard", id: "LOAN_PRODUCTS" }],
+    }),
+
+    /**
+     * POST /v2/loan-products
+     *
+     * Creates a new loan product.
+     * Body: { name, provider, interestRate, minAmount, maxAmount, tenure, description? }
+     */
+    createLoanProduct: builder.mutation<{ data: LoanProduct }, Omit<LoanProduct, "id" | "createdAt">>({
+      query: (body) => ({
+        url: "/v2/loan-products",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [{ type: "Dashboard", id: "LOAN_PRODUCTS" }],
+    }),
+
+    /**
+     * PATCH /v2/loan-products/:id
+     *
+     * Updates an existing loan product (including toggling isActive).
+     * Body: Partial<{ name, provider, interestRate, minAmount, maxAmount, tenure, description, isActive }>
+     */
+    updateLoanProduct: builder.mutation<{ data: LoanProduct }, { id: string; data: Partial<Omit<LoanProduct, "id" | "createdAt">> }>({
+      query: ({ id, data }) => ({
+        url: `/v2/loan-products/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: [{ type: "Dashboard", id: "LOAN_PRODUCTS" }],
+    }),
+
+    /**
+     * DELETE /v2/loan-products/:id
+     *
+     * Permanently deletes a loan product.
+     */
+    deleteLoanProduct: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `/v2/loan-products/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "Dashboard", id: "LOAN_PRODUCTS" }],
+    }),
+
+    /**
+     * GET /v2/loan-providers
+     *
+     * Returns all loan providers, newest-first.
+     * Used by: Loan page — Loan Providers section (list, create, edit, delete, toggle).
+     */
+    getLoanProviders: builder.query<LoanProvidersResponse, void>({
+      query: () => ({ url: "/v2/loan-providers" }),
+      providesTags: [{ type: "Dashboard", id: "LOAN_PROVIDERS" }],
+    }),
+
+    /**
+     * POST /v2/loan-providers
+     *
+     * Creates a new loan provider.
+     * Body: { name, description?, contactEmail?, contactPhone?, isActive }
+     */
+    createLoanProvider: builder.mutation<{ data: LoanProvider }, Omit<LoanProvider, "id" | "createdAt">>({
+      query: (body) => ({
+        url: "/v2/loan-providers",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [{ type: "Dashboard", id: "LOAN_PROVIDERS" }],
+    }),
+
+    /**
+     * PATCH /v2/loan-providers/:id
+     *
+     * Updates a loan provider (including toggling isActive for enable/disable).
+     * Body: Partial<{ name, description, contactEmail, contactPhone, isActive }>
+     */
+    updateLoanProvider: builder.mutation<{ data: LoanProvider }, { id: string; data: Partial<Omit<LoanProvider, "id" | "createdAt">> }>({
+      query: ({ id, data }) => ({
+        url: `/v2/loan-providers/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: [{ type: "Dashboard", id: "LOAN_PROVIDERS" }],
+    }),
+
+    /**
+     * DELETE /v2/loan-providers/:id
+     *
+     * Permanently deletes a loan provider.
+     */
+    deleteLoanProvider: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `/v2/loan-providers/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "Dashboard", id: "LOAN_PROVIDERS" }],
+    }),
   }),
 });
 
@@ -356,4 +581,12 @@ export const {
   useGetLoansByStatusQuery,
   useGetLoanMonthlyTrendQuery,
   useGetLoanLocationStatsQuery,
+  useGetLoanProductsQuery,
+  useCreateLoanProductMutation,
+  useUpdateLoanProductMutation,
+  useDeleteLoanProductMutation,
+  useGetLoanProvidersQuery,
+  useCreateLoanProviderMutation,
+  useUpdateLoanProviderMutation,
+  useDeleteLoanProviderMutation,
 } = loanApi;

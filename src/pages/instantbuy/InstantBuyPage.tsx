@@ -21,6 +21,13 @@ import {
   useGetInstantBuyLocationStatsQuery,
   Transaction, TxType, TxStatus,
 } from "@/store/api/instantBuyApi";
+import {
+  MOCK_IB_SUMMARY,
+  MOCK_IB_MONTHLY,
+  MOCK_IB_DAILY,
+  MOCK_IB_LOCATIONS,
+  MOCK_IB_TRANSACTIONS,
+} from "@/mock/mockData";
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -584,12 +591,13 @@ const InstantBuyPage = () => {
   const { data: dailyVolumeRes }                          = useGetInstantBuyDailyVolumeQuery();
   const { data: locationRes }                             = useGetInstantBuyLocationStatsQuery();
   const { data: txnRes }                                  = useGetInstantBuyTransactionsQuery();
-  const summary = summaryRes?.data;
+  const summary = summaryRes?.data ?? MOCK_IB_SUMMARY;
 
-  const monthlyData       = monthlyTrendRes?.data   ?? [];
-  const dailyData         = dailyVolumeRes?.data    ?? [];
-  const purchaseLocations = locationRes?.data       ?? [];
-  const allTxns           = txnRes?.data?.data      ?? [];
+  const monthlyData       = monthlyTrendRes?.data?.length  ? monthlyTrendRes.data  : MOCK_IB_MONTHLY;
+  const dailyData         = dailyVolumeRes?.data?.length   ? dailyVolumeRes.data   : MOCK_IB_DAILY;
+  const purchaseLocations = locationRes?.data?.length      ? locationRes.data      : MOCK_IB_LOCATIONS;
+  const apiTxns           = txnRes?.data?.data ?? [];
+  const allTxns           = (apiTxns.length > 0 ? apiTxns : MOCK_IB_TRANSACTIONS) as Transaction[];
 
   const totalFunded   = summary?.totalFunded          ?? 0;
   const totalPayments = summary?.totalPayments        ?? 0;

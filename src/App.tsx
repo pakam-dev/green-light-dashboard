@@ -12,6 +12,8 @@ import PublicReportPage from "./pages/reports/PublicReportPage";
 import LoanPage from "./pages/loan/LoanPage";
 import InstantBuyPage from "./pages/instantbuy/InstantBuyPage";
 import FinancialsPage from "./pages/financials/FinancialsPage";
+import PayoutsPage from "./pages/payouts/PayoutsPage";
+import CollectorsPage from "./pages/collectors/CollectorsPage";
 import SignIn from "./pages/auth/SignIn";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -40,6 +42,8 @@ const App = () => (
             <Route path="instantbuy" element={<InstantBuyPage />} />
             <Route path="financials" element={<FinancialsPage />} />
             <Route path="reports" element={<ReportsPage />} />
+            <Route path="payouts"     element={<PayoutsPage />}    />
+            <Route path="collectors" element={<CollectorsPage />} />
           </Route>
 
           {/* Public shareable report — no auth required */}

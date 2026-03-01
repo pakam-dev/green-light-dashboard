@@ -4,12 +4,13 @@ import { useGetUsersQuery, User } from '@/store/api/usersApi';
 import { useDataTable } from '@/hooks/use-data-table';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
+import { MOCK_USERS } from '@/mock/mockData';
 
 const UsersPage = () => {
   const { data: usersResponse, isLoading, refetch } = useGetUsersQuery();
 
   const tableState = useDataTable<User>({
-    data: usersResponse?.data || [],
+    data: (usersResponse?.data?.length ? usersResponse.data : MOCK_USERS) as User[],
     initialPageSize: 10,
     searchableFields: ['name', 'email', 'phone', 'role'],
   });

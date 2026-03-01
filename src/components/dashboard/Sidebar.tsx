@@ -8,6 +8,8 @@ import {
   Landmark,
   CreditCard,
   Banknote,
+  Wallet,
+  HardHat,
   LogOut,
 } from "lucide-react";
 
@@ -23,10 +25,13 @@ const menuItems = [
   // { id: "dashboard",   label: "Dashboard",  icon: LayoutDashboard },
   // { id: "total-users", label: "Total Users", icon: Users },
   { id: "reports",     label: "Dashboard",  icon: BarChart2  },
+  { id: "collectors",  label: "Collectors", icon: HardHat   },
   { id: "schedules",   label: "Schedules",  icon: Calendar   },
   { id: "loan",        label: "Loan",       icon: Landmark   },
   { id: "instantbuy",  label: "InstantBuy", icon: CreditCard },
   { id: "financials",  label: "Financials", icon: Banknote  },
+  { id: "payouts",     label: "Payouts",    icon: Wallet    },
+  
 ];
 
 export const Sidebar = ({ activeItem, onItemClick, isOpen = false, onClose, onLogout }: SidebarProps) => {
